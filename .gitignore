@@ -22,6 +22,7 @@ local/tests/_tts_smoke_output.wav
 /local_project_tdd.md
 /stt_tts_deep_dive.md
 /voice_pipeline_architecture.md
+/HANDOFF.md
 
 # OS cruft
 .DS_Store
