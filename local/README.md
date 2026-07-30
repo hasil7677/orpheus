@@ -42,6 +42,14 @@ Stack: **Silero VAD** (CPU) → **Moonshine** STT (GPU) → **Groq** LLM (cloud)
    `CUDAExecutionProvider` shows up, otherwise it silently fell back to CPU
    and TTS will be much slower.
 
+   Two more tests need no GPU/mic/API key at all (models/Groq are faked) and
+   run in a couple seconds:
+
+   ```
+   .venv\Scripts\python.exe tests\test_barge_in.py
+   .venv\Scripts\python.exe tests\test_history_trim.py
+   ```
+
 5. **Run it:**
 
    ```
@@ -52,13 +60,35 @@ Stack: **Silero VAD** (CPU) → **Moonshine** STT (GPU) → **Groq** LLM (cloud)
    each turn so you can see real latency on this hardware. Try talking over
    the AI mid-response to test barge-in.
 
+## Choosing a specific mic/speaker
+
+By default this uses your OS default input/output devices. To pick a
+different one:
+
+```
+.venv\Scripts\python.exe list_devices.py
+```
+
+This prints each device's index. Copy the ones you want into `local/.env`:
+
+```
+AUDIO_INPUT_DEVICE=3
+AUDIO_OUTPUT_DEVICE=5
+```
+
+Leave a value unset (or remove it) to fall back to the OS default for that
+device.
+
 ## Notes
 
-- `silence_timeout_ms` (config.py, default 500ms) controls how long a pause
+- `silence_timeout_ms` (config.py, default 650ms) controls how long a pause
   has to be before the utterance is considered "done." Lower = snappier but
   more likely to cut people off mid-thought; higher = more natural but slower.
 - Noise reduction runs once per full utterance (`audio/postprocessor.py`),
   not per audio chunk — spectral gating needs more context than a single
   32ms VAD frame to work well, and doing it per-chunk was too slow anyway.
+- Conversation history sent to the LLM is capped at `llm_max_history_turns`
+  (config.py, default 10 user+assistant turn pairs) so a long-running
+  conversation doesn't grow the request payload unboundedly.
 - If `kokoro-onnx` errors on phonemization, install `espeak-ng` and make
   sure it's on `PATH`.

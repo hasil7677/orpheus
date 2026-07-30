@@ -11,7 +11,9 @@ from kokoro_onnx import Kokoro
 from config import ModelConfig
 
 _SENTENCE_BOUNDARY = re.compile(r"(?<=[.!?])\s+")
+_CLAUSE_BOUNDARY = re.compile(r"(?<=[.!?,;:])\s+")
 _ASTERISK_ACTIONS = re.compile(r"\*[^*]*\*")
+_MIN_FLUSH_CHARS = 4  # avoid synthesizing a near-empty stray-punctuation fragment
 
 MODELS_DIR = Path(__file__).parent.parent / "assets"
 KOKORO_MODEL_PATH = MODELS_DIR / "kokoro-v1.0.onnx"
@@ -50,12 +52,26 @@ class TextToSpeechProvider:
         self, text_stream: AsyncGenerator[str, None]
     ) -> AsyncGenerator[np.ndarray, None]:
         buffer = ""
+        first_chunk_sent = False
         async for token in text_stream:
             buffer += token
-            parts = _SENTENCE_BOUNDARY.split(buffer)
-            if len(parts) > 1:
+            # Kokoro's create_stream doesn't really stream a single sentence —
+            # a short-to-medium sentence fits in one phoneme batch, so it runs
+            # one blocking inference over the whole thing before yielding
+            # anything (see kokoro_onnx's _split_phonemes/create_stream).
+            # Waiting for a full sentence boundary before the first call to
+            # Kokoro was therefore adding a full sentence's worth of LLM
+            # tokens *plus* a full sentence's worth of inference before any
+            # audio came out. Flushing on the first clause boundary (comma/
+            # semicolon/colon too) gets audio started on just the first few
+            # words instead. Once speech has actually started, fall back to
+            # full sentence boundaries for more natural prosody on the rest.
+            boundary = _SENTENCE_BOUNDARY if first_chunk_sent else _CLAUSE_BOUNDARY
+            parts = boundary.split(buffer)
+            if len(parts) > 1 and len(parts[0].strip()) >= _MIN_FLUSH_CHARS:
                 for sentence in parts[:-1]:
                     async for chunk in self._synthesize_sentence(sentence):
+                        first_chunk_sent = True
                         yield chunk
                 buffer = parts[-1]
 

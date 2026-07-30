@@ -31,6 +31,16 @@ class ModelConfig(BaseModel):
         )
     )
     llm_max_tokens: int = Field(default=256)
+    llm_max_history_turns: int = Field(
+        default=10,
+        description=(
+            "Max user+assistant turn pairs kept in conversation_history. Older "
+            "turns are dropped once exceeded — otherwise the full history is "
+            "resent to Groq every request and grows unboundedly for a "
+            "long-running conversation, eventually hitting the model's context "
+            "window and increasing latency/cost along the way."
+        ),
+    )
 
 
 class AudioProcessingConfig(BaseModel):

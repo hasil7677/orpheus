@@ -82,3 +82,10 @@ class LLMProvider:
             yield item
 
         conversation_history.append({"role": "assistant", "content": full_response})
+
+        # Trim in place (the orchestrator holds this same list across turns) —
+        # keep only the most recent N user+assistant pairs so a long-running
+        # conversation doesn't grow the request payload unboundedly.
+        max_messages = self.config.llm_max_history_turns * 2
+        if len(conversation_history) > max_messages:
+            del conversation_history[: len(conversation_history) - max_messages]

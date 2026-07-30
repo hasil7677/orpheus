@@ -181,5 +181,20 @@ class PipelineOrchestrator:
             self.state = PipelineState.IDLE
 
         except asyncio.CancelledError:
-            self.state = PipelineState.IDLE
+            # Cancellation only ever comes from _handle_barge_in(), which has
+            # already synchronously moved state to LISTENING (to start
+            # capturing the new utterance) before this handler runs. Only
+            # reset to IDLE if that hasn't happened — otherwise this clobbers
+            # the just-entered LISTENING state and silently drops the start
+            # of whatever the user said right after interrupting.
+            if self.state in (PipelineState.THINKING, PipelineState.SPEAKING):
+                self.state = PipelineState.IDLE
             raise
+        except Exception as exc:
+            # Without this, any failure here (Groq network error, STT
+            # exception, etc.) kills the background task silently —
+            # _handle_state_transition has no recovery branch for THINKING/
+            # SPEAKING, so the pipeline would stop responding to speech
+            # entirely until the process is restarted.
+            print(f"  [error] utterance processing failed: {exc!r}")
+            self.state = PipelineState.IDLE
