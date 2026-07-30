@@ -9,12 +9,12 @@ __pycache__/
 .venv/
 venv/
 
-# Downloaded model weights (large binaries — see local/README.md for source)
-local/assets/*.onnx
-local/assets/*.bin
+# Downloaded model weights (large binaries — see README.md for source)
+assets/*.onnx
+assets/*.bin
 
 # Test-generated artifacts
-local/tests/_tts_smoke_output.wav
+tests/_tts_smoke_output.wav
 
 # Design notes — kept locally, not published
 /artitecture.md
