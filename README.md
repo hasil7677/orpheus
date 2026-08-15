@@ -6,7 +6,7 @@ Runs speech detection, transcription, and voice synthesis entirely on your own G
 
 ## Demo
 
-<video src="https://raw.githubusercontent.com/hasil7677/orhpeus/main/demo.mp4" controls width="100%"></video>
+<video src="https://raw.githubusercontent.com/hasil7677/orpheus/main/demo.mp4" controls width="100%"></video>
 
 (If the player above doesn't render, [watch/download it directly](demo.mp4).)
 
