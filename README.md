@@ -56,6 +56,9 @@ compute. The two things that dominate perceived delay are the fixed 650ms
 endpointing pause and the round-trip to Groq, neither of which is GPU-bound.
 Lowering `silence_timeout_ms` is the single most effective knob.
 
+Harness, raw traces and full caveats are in [`benchmarks/`](benchmarks/) —
+`benchmarks/analyze.py` regenerates this table from the saved logs.
+
 <details>
 <summary>Measurement conditions</summary>
 

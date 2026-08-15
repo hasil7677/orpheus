@@ -1,0 +1,121 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[0;93m2026-08-15 18:43:54.2786771 [W:onnxruntime:, transformer_memcpy.cc:74 onnxruntime::MemcpyTransformer::ApplyImpl] 39 Memcpy nodes are added to the graph main_graph for CUDAExecutionProvider. It might have negative impact on performance (including unable to run CUDA graph). Set session_options.log_severity_level=1 to see the detail logs before this message.[m
+[0;93m2026-08-15 18:43:54.3283550 [W:onnxruntime:, session_state.cc:1168 onnxruntime::VerifyEachNodeIsAssignedToAnEp] Some nodes were not assigned to the preferred execution providers which may or may not have an negative impact on performance. e.g. ORT explicitly assigns shape related ops to CPU to improve perf.[m
+[0;93m2026-08-15 18:43:54.3292202 [W:onnxruntime:, session_state.cc:1170 onnxruntime::VerifyEachNodeIsAssignedToAnEp] Rerunning with verbose output on a non-minimal build will show node assignments.[m
+[0;93m2026-08-15 18:43:55.4115174 [W:onnxruntime:Default, scatter_nd.h:51 onnxruntime::cuda::ScatterNDWithAtomicReduction::ScatterNDWithAtomicReduction] ScatterND with reduction=='none' only guarantees to be correct if indices are not duplicated.[m
+========================================================================
+orpheus session trace � real orchestrator, WAV-fed mic
+clips: benchmarks\clips  (3 files x 5 reps)
+========================================================================
+Loading models...
+All models loaded.
+
+Pipeline ready. Feeding utterances at real-time cadence.
+
+--- turn 1 (long_16k, 4.01s of speech) ---
+Listening...
+  [STT 953ms] You said: "When you explain how a voice assistant pipeline works briefly."
+  [LLM TTFT 1094ms]
+  [TTS TTFA 6109ms]
+  [mem] working set 320 MB | private 4,928 MB | history 2 msgs
+
+--- turn 2 (medium_16k, 1.77s of speech) ---
+Listening...
+  [STT 593ms] You said: "What is the capital of France?"
+  [LLM TTFT 1422ms]
+  [TTS TTFA 2172ms]
+  [mem] working set 397 MB | private 4,930 MB | history 4 msgs
+
+--- turn 3 (short_16k, 1.26s of speech) ---
+Listening...
+  [STT 188ms] You said: "What time is it?"
+  [LLM TTFT 656ms]
+  [TTS TTFA 1250ms]
+  [mem] working set 556 MB | private 4,933 MB | history 6 msgs
+
+--- turn 4 (long_16k, 4.01s of speech) ---
+Listening...
+  [STT 438ms] You said: "Can you explain how a voice assistant pipeline works briefly?"
+  [LLM TTFT 593ms]
+  [TTS TTFA 1234ms]
+  [mem] working set 665 MB | private 4,939 MB | history 8 msgs
+
+--- turn 5 (medium_16k, 1.77s of speech) ---
+Listening...
+  [STT 250ms] You said: "What is the capital of France?"
+  [LLM TTFT 812ms]
+  [TTS TTFA 1265ms]
+  [mem] working set 673 MB | private 4,941 MB | history 10 msgs
+
+--- turn 6 (short_16k, 1.26s of speech) ---
+Listening...
+  [STT 172ms] You said: "What time is it?"
+  [LLM TTFT 781ms]
+  [TTS TTFA 1328ms]
+  [mem] working set 676 MB | private 4,944 MB | history 12 msgs
+
+--- turn 7 (long_16k, 4.01s of speech) ---
+Listening...
+  [STT 359ms] You said: "Can you explain how a voice assistant pipeline works briefly?"
+  [LLM TTFT 1907ms]
+  [TTS TTFA 2766ms]
+  [mem] working set 693 MB | private 4,950 MB | history 14 msgs
+
+--- turn 8 (medium_16k, 1.77s of speech) ---
+Listening...
+  [STT 172ms] You said: "What is the capital of France?"
+  [LLM TTFT 890ms]
+  [TTS TTFA 1375ms]
+  [mem] working set 696 MB | private 4,953 MB | history 16 msgs
+
+--- turn 9 (short_16k, 1.26s of speech) ---
+Listening...
+  [STT 125ms] You said: "What time is it?"
+  [LLM TTFT 453ms]
+  [TTS TTFA 1094ms]
+  [mem] working set 699 MB | private 4,954 MB | history 18 msgs
+
+--- turn 10 (long_16k, 4.01s of speech) ---
+Listening...
+  [STT 281ms] You said: "Can you explain how a voice assistant pipeline works briefly?"
+  [LLM TTFT 500ms]
+  [TTS TTFA 1219ms]
+  [mem] working set 706 MB | private 4,960 MB | history 20 msgs
+
+--- turn 11 (medium_16k, 1.77s of speech) ---
+Listening...
+  [STT 265ms] You said: "What is the capital of France?"
+  [LLM TTFT 469ms]
+  [TTS TTFA 1063ms]
+  [mem] working set 481 MB | private 4,963 MB | history 20 msgs
+
+--- turn 12 (short_16k, 1.26s of speech) ---
+Listening...
+  [STT 172ms] You said: "What time is it?"
+  [LLM TTFT 671ms]
+  [TTS TTFA 1218ms]
+  [mem] working set 564 MB | private 4,967 MB | history 20 msgs
+
+--- turn 13 (long_16k, 4.01s of speech) ---
+Listening...
+  [STT 343ms] You said: "Can you explain how a voice assistant pipeline works briefly?"
+  [LLM TTFT 1032ms]
+  [TTS TTFA 1579ms]
+  [mem] working set 671 MB | private 5,075 MB | history 20 msgs
+
+--- turn 14 (medium_16k, 1.77s of speech) ---
+Listening...
+  [STT 203ms] You said: "What is the capital of France?"
+  [LLM TTFT 531ms]
+  [TTS TTFA 1031ms]
+  [mem] working set 680 MB | private 5,078 MB | history 20 msgs
+
+--- turn 15 (short_16k, 1.26s of speech) ---
+Listening...
+  [STT 125ms] You said: "What time is it?"
+  [LLM TTFT 468ms]
+  [TTS TTFA 906ms]
+  [mem] working set 684 MB | private 5,080 MB | history 20 msgs
+
+========================================================================
+done

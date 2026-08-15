@@ -1,0 +1,23 @@
+2026-08-15-gtx1650-run1.log: 14 turns (dropped cold start: STT 953 / TTFT 1094 / TTFA 6109)
+2026-08-15-gtx1650-run2.log: 14 turns (dropped cold start: STT 1359 / TTFT 719 / TTFA 2750)
+
+pooled n = 28
+
+stage                      median     min     max     p90
+---------------------------------------------------------
+STT (denoise+ASR)           180ms    109    593    359
+LLM TTFT                    492ms    375   1907   1032
+TTS TTFA (from LLM)        1148ms    734   2766   1859
+TTS-only (TTFA-TTFT)        524ms    328    906    813
+end-to-end (STT+TTFA)      1359ms    859   3125   2109
+
+note: TTFA is timed from LLM-stream start, so it contains TTFT.
++ VAD endpointing (silence_timeout_ms): 650ms, fixed
+=> mouth-to-ear: median 2009ms  p90 2759  range 1509-3775
+
+by utterance (medians):
+clip                dur   n      STT     TTFT     TTFA      e2e
+---------------------------------------------------------------
+short_16k         1.26s  10    133ms    446ms    867ms    992ms
+medium_16k        1.77s  10    180ms    469ms    953ms   1133ms
+long_16k          4.01s   8    281ms    679ms   1438ms   1750ms
