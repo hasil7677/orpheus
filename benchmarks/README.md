@@ -20,7 +20,21 @@ number reported is the orchestrator's own `[STT]` / `[LLM TTFT]` /
 
 `trace_session.py [clips_dir] [reps]` accepts any directory of WAVs at any
 sample rate, so you can benchmark against recordings of your own voice rather
-than the synthesized clips.
+than the synthesized clips. To record the same three sentences through your
+real mic:
+
+```
+.venv\Scripts\python.exe benchmarks\record_utterances.py
+.venv\Scripts\python.exe benchmarks\trace_session.py benchmarks\clips_real 5 > real.log 2>&1
+.venv\Scripts\python.exe benchmarks\analyze.py real.log
+```
+
+`record_utterances.py` opens the mic with the same PyAudio parameters as
+`cli.py`, so the audio reaching the VAD is what the live pipeline sees. It
+writes to `benchmarks/clips_real/`, which is git-ignored — your voice stays
+local. The prompts are the same sentences `make_utterances.py` synthesizes,
+so transcripts are directly comparable and any difference is attributable to
+real-mic audio rather than to different words.
 
 ## Reading the numbers
 
