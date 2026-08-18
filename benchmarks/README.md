@@ -104,6 +104,46 @@ speaker never finished saying. The gate believes it and cuts. It fails *more*
 often when STT is fast, because a quick answer means a shorter, more truncated
 partial. Punctuation from an ASR is a hint, not a turn-completion signal.
 
+`results/2026-08-19-endpointing-eval-real.log` — same harness, real recorded
+speech: 8 clips (`benchmarks/clips_real/`, `record_pause_utterances.py`) x 3
+reps x both modes, n=24 each. Labels are Silero VAD's own last-voiced-chunk
+timestamp (`config.vad.threshold`, same model the pipeline runs), not the
+amplitude-threshold heuristic `record_pause_utterances.py` auto-writes — see
+"Caveats" below, that heuristic's output was unusable on this set. Against a
+fixed 650ms timeout, `punctuation` took 345ms off the median response-ready
+time (897ms -> 552ms) with a *better* max too (2065ms -> 1443ms), but cost
+**5 more false-cut events** (15 -> 20 across 24 turns) — the opposite
+direction from the synthetic run, where punctuation reduced false cuts.
+
+**Real speech reinforces the "don't ship A" verdict, but not for the reason
+expected going in.** The three deliberately-paused clips (mid-sentence pause,
+"um"+restart) get badly split by *both* modes almost every time — fixed
+because a natural 1-2s thinking pause is longer than 650ms by design, and
+punctuation because Moonshine still confabulates a finished-sounding fragment
+mid-pause. Neither approach handles a genuine hesitation. The clean finding is
+`long_16k` — an ordinary, non-deliberately-paused question
+("Can you explain how a voice assistant pipeline works briefly?") that fixed
+mode answers correctly every time (single turn, correct transcript) and
+punctuation mode splits into two *every single rep*: Moonshine reads a natural
+sub-650ms breath as "Do you?" (a question mark the speaker never said) and
+finalizes on it, then answers the rest of the sentence as a second turn. This
+is the exact synthetic failure mode — invented terminal punctuation on a
+truncated utterance — reproduced on real recorded speech, on a clip that
+wasn't even built to test it.
+
+`record_pause_utterances.py`'s auto-labeler (RMS-threshold, `> median*0.15`)
+returned `speech_end_ms` within 4ms of the *full 10s recording window* for
+all 5 clips it wrote — worthless, and not obviously so from the numbers
+alone, since a clean recording legitimately can have voiced content deep into
+a long window. The real problem: on this mic/room, quiet in-sentence syllables
+and post-speech room tone sit only ~2-5x apart in RMS, too close for a static
+threshold to separate. Re-labeled with Silero VAD (the same model and
+threshold the pipeline itself runs on 32ms chunks) instead, which gives
+per-clip values that track content sensibly and correctly locates the
+deliberate gaps in `pause1`/`pause2` as a stretch of nonspeech. If extending
+this clip set, prefer the VAD relabel approach over the RMS heuristic, or fix
+`last_voiced_end_ms` in `record_pause_utterances.py` to do the same.
+
 `results/2026-08-15-gtx1650-run{1,2}.log` — 15 turns each, GTX 1650 4GB
 (driver 580.97), Ryzen 5 5600H, Windows 11, `openai/gpt-oss-20b` on Groq,
 otherwise-idle machine. `results/2026-08-15-gtx1650-summary.txt` is the
@@ -124,6 +164,14 @@ end-to-end 1359ms, mouth-to-ear ~2009ms.
   encoder at 31ms median on GPU vs 47ms on CPU.
 - **LLM TTFT is network-bound** and will vary with your distance to Groq,
   their load, and the model. It is the widest distribution here (375-1907ms).
+- **The 2026-08-19 real-speech endpointing run also fought memory pressure.**
+  Brave/WSL/Docker were closed first (349MB -> 1.2GB available), but the
+  eval's own model loading ate back down to 365MB by the time it started and
+  as low as 73-130MB mid-run. Treat the response-ready *medians* as directionally
+  right (they replicate the synthetic run's shape) but the p90/max and any
+  single clip's absolute ms as noisy. The false-cut counts and which clips
+  get split into which number of turns are structural (same every rep,
+  independent of memory) and are the trustworthy part of that result.
 - **Memory pressure dominates everything if you let it.** This pipeline
   commits ~5GB. On the 5.86GB box these were measured on, running with
   WSL/Docker/browsers resident produced STT maxima of 9328ms and intermittent
