@@ -36,6 +36,39 @@ local. The prompts are the same sentences `make_utterances.py` synthesizes,
 so transcripts are directly comparable and any difference is attributable to
 real-mic audio rather than to different words.
 
+## Endpointing evaluation
+
+`eval_endpointing.py` is a separate harness for one question: when should the
+pipeline decide you have stopped talking? It runs both `endpoint_mode` settings
+(`fixed`, `punctuation` — see `config.py`) over the same clips and reports the
+two things that matter:
+
+- **false cuts** — turns finalized while the speaker still had audio left,
+- **response-ready** — ms from the true end of speech to the moment the LLM
+  would have been called.
+
+```
+.venv\Scripts\python.exe benchmarks\make_pause_clips.py
+.venv\Scripts\python.exe benchmarks\eval_endpointing.py benchmarks\clips_pauses 3
+```
+
+It stubs out the LLM and TTS — they are downstream of the decision being
+measured, they add network variance that would swamp it, and skipping them
+keeps the process near VAD+STT memory instead of the full ~5GB. The two modes
+alternate clip by clip rather than running in blocks, because this box's STT
+latency drifts by hundreds of ms over a few minutes and a blocked run would
+hand that drift to whichever mode went second.
+
+Ground truth comes from a `labels.json` next to the clips:
+
+```json
+{"my_clip_16k": {"speech_end_ms": 3120, "pauses": [[1180, 2050]]}}
+```
+
+`speech_end_ms` — the last instant the speaker was still talking — is the only
+required field. `make_pause_clips.py` writes one automatically for the clips it
+generates; for real recordings it has to be written by hand.
+
 ## Reading the numbers
 
 **`[TTS TTFA]` is timed from the start of the LLM stream, so it already
@@ -53,6 +86,23 @@ begins. It is not in any printed timing but is very much in the user's
 perception, so mouth-to-ear adds it.
 
 ## Saved results
+
+`results/2026-08-18-endpointing-eval-synthetic.log` — 3 spliced-pause clips x
+3 reps x both modes, n=9 each. Against a fixed 650ms timeout, `punctuation`
+took 156ms off the median response-ready time with a flat tail (p90 +63ms) and
+turned 2 of 9 false cuts into clean single turns.
+
+**That is not a result to ship on.** The clips are Kokoro speech with digital
+silence spliced in, which is not what a human pause sounds like; n=9 on 3
+sentences is nothing; and the box was between 48MB and 711MB available during
+the run, so individual STT figures in that log swing 10x. The useful part is
+the *failure mode* it exposes, which is robust across every run: Moonshine
+invents terminal punctuation on a truncated utterance — "Can you explain how a
+voice assistant pipeline works briefly" comes back mid-pause as "Can you
+explain how a voice assistant pipes?", complete with a question mark the
+speaker never finished saying. The gate believes it and cuts. It fails *more*
+often when STT is fast, because a quick answer means a shorter, more truncated
+partial. Punctuation from an ASR is a hint, not a turn-completion signal.
 
 `results/2026-08-15-gtx1650-run{1,2}.log` — 15 turns each, GTX 1650 4GB
 (driver 580.97), Ryzen 5 5600H, Windows 11, `openai/gpt-oss-20b` on Groq,

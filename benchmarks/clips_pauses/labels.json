@@ -1,0 +1,32 @@
+{
+  "long_pause900_16k": {
+    "speech_end_ms": 4911,
+    "pauses": [
+      [
+        2490,
+        3390
+      ]
+    ],
+    "source": "synthesized + spliced silence (mechanism test only)"
+  },
+  "medium_pause900_16k": {
+    "speech_end_ms": 2671,
+    "pauses": [
+      [
+        790,
+        1690
+      ]
+    ],
+    "source": "synthesized + spliced silence (mechanism test only)"
+  },
+  "short_pause900_16k": {
+    "speech_end_ms": 2159,
+    "pauses": [
+      [
+        320,
+        1220
+      ]
+    ],
+    "source": "synthesized + spliced silence (mechanism test only)"
+  }
+}

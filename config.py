@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -16,6 +18,48 @@ class VADConfig(BaseModel):
     threshold: float = Field(default=0.5, ge=0.0, le=1.0, description="Speech probability threshold")
     silence_timeout_ms: int = Field(default=650, description="Consecutive silence before cutting utterance")
     min_speech_ms: int = Field(default=250, description="Minimum duration to be considered valid speech")
+
+    endpoint_mode: Literal["fixed", "punctuation"] = Field(
+        default="fixed",
+        description=(
+            "How the end of a turn is decided. 'fixed' waits silence_timeout_ms "
+            "of continuous silence — cheap, predictable, and what the measured "
+            "latency table was produced with. 'punctuation' cuts the wait to "
+            "silence_floor_ms, transcribes what has been buffered so far, and "
+            "finalizes only if the transcript looks like a finished sentence; "
+            "otherwise it keeps listening up to silence_ceiling_ms. Costs no "
+            "extra memory (Moonshine is already resident) and no extra STT pass "
+            "on the common case, because the transcript that answered the "
+            "question is the one handed to the LLM."
+        ),
+    )
+    silence_floor_ms: int = Field(
+        default=300,
+        description="punctuation mode: silence before the first turn-complete check",
+    )
+    silence_ceiling_ms: int = Field(
+        default=2000,
+        description=(
+            "punctuation mode: hard cap on the wait. Finalizes unconditionally "
+            "at this point so a transcript that never gains punctuation — or an "
+            "STT failure inside the gate — can't hang the turn."
+        ),
+    )
+    endpoint_recheck_ms: int = Field(
+        default=250,
+        description="punctuation mode: extra silence to accrue before asking again",
+    )
+
+    @property
+    def max_endpoint_wait_ms(self) -> int:
+        """Longest silence the endpointer can wait before it must finalize.
+
+        Benchmark harnesses use this to size the silence tail they append to a
+        clip; a tail shorter than this never triggers endpointing at all.
+        """
+        if self.endpoint_mode == "fixed":
+            return self.silence_timeout_ms
+        return self.silence_ceiling_ms
 
 
 class ModelConfig(BaseModel):

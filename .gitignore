@@ -30,3 +30,6 @@ Thumbs.db
 
 # Your own voice recordings — kept local, not published
 benchmarks/clips_real/
+
+# Local working notes — never published
+/CLAUDE.md

@@ -1,0 +1,166 @@
+﻿Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+========================================================================
+orpheus endpointing eval - real VAD/STT/state machine, stubbed LLM+TTS
+clips: benchmarks\clips_pauses  (3 files x 3 reps x 2 modes)
+labels: labels.json
+available physical memory at start: 312 MB
+========================================================================
+Loading models...
+All models loaded.
+
+fixed:       silence_timeout_ms=650
+punctuation: floor=300 recheck=250 ceiling=2000
+
+--- rep 1: long_pause900_16k (48 MB available) ---
+Listening...
+  [STT 1375ms] You said: "When you explain how a voice assistant pipes"
+Listening...
+  [STT 312ms] You said: ""
+  fixed        ready   -391ms  turns 1  <-- FALSE CUT
+      heard: "When you explain how a voice assistant pipes"
+Listening...
+  [ENDPOINT 1280ms] turn complete: "Can you explain how a voice assistant pipeline works briefly?"
+  [STT 968ms] You said: "Can you explain how a voice assistant pipeline works briefly?"
+  punctuation  ready   1203ms  turns 1
+      heard: "Can you explain how a voice assistant pipeline works briefly?"
+
+--- rep 1: medium_pause900_16k (481 MB available) ---
+Listening...
+  [STT 422ms] You said: "What is the cap?"
+Listening...
+  [STT 625ms] You said: "Of France."
+  fixed        ready   1234ms  turns 2  <-- FALSE CUT
+      heard: "Of France."
+Listening...
+  [ENDPOINT 896ms] turn complete: "What is the cap?"
+  [STT 562ms] You said: "What is the cap?"
+Listening...
+  [ENDPOINT 1248ms] turn complete: "The title of France."
+  [STT 906ms] You said: "The title of France."
+  punctuation  ready   1188ms  turns 2  <-- FALSE CUT
+      heard: "The title of France."
+
+--- rep 1: short_pause900_16k (506 MB available) ---
+Listening...
+  [STT 297ms] You said: "What?"
+Listening...
+  [STT 734ms] You said: "I'm is it."
+  fixed        ready   1250ms  turns 2  <-- FALSE CUT
+      heard: "I'm is it."
+Listening...
+  [ENDPOINT 640ms] turn complete: "What?"
+  [STT 312ms] You said: "What?"
+Listening...
+  [ENDPOINT 800ms] turn complete: "I'm is it."
+  [STT 453ms] You said: "I'm is it."
+  punctuation  ready    657ms  turns 2  <-- FALSE CUT
+      heard: "I'm is it."
+
+--- rep 2: long_pause900_16k (364 MB available) ---
+Listening...
+  [STT 860ms] You said: "When you explain how a voice assistant pipes"
+Listening...
+  [STT 484ms] You said: ""
+  fixed        ready   -906ms  turns 1  <-- FALSE CUT
+      heard: "When you explain how a voice assistant pipes"
+Listening...
+  [ENDPOINT 1408ms] turn complete: "Can you explain how a voice assistant pipeline works briefly?"
+  [STT 1063ms] You said: "Can you explain how a voice assistant pipeline works briefly?"
+  punctuation  ready   1313ms  turns 1
+      heard: "Can you explain how a voice assistant pipeline works briefly?"
+
+--- rep 2: medium_pause900_16k (365 MB available) ---
+Listening...
+  [STT 453ms] You said: "What is the cap?"
+Listening...
+  [STT 312ms] You said: "France."
+  fixed        ready    937ms  turns 2  <-- FALSE CUT
+      heard: "France."
+Listening...
+  [ENDPOINT 608ms] turn complete: "What is the cap?"
+  [STT 297ms] You said: "What is the cap?"
+Listening...
+  [ENDPOINT 544ms] turn complete: "The title of France."
+  [STT 187ms] You said: "The title of France."
+  punctuation  ready    469ms  turns 2  <-- FALSE CUT
+      heard: "The title of France."
+
+--- rep 2: short_pause900_16k (358 MB available) ---
+Listening...
+  [STT 297ms] You said: "What?"
+Listening...
+  [STT 203ms] You said: "I'm is it."
+  fixed        ready    703ms  turns 2  <-- FALSE CUT
+      heard: "I'm is it."
+Listening...
+  [ENDPOINT 448ms] turn complete: "What?"
+  [STT 125ms] You said: "What?"
+Listening...
+  [ENDPOINT 1120ms] turn complete: "I'm is it."
+  [STT 797ms] You said: "I'm is it."
+  punctuation  ready    985ms  turns 2  <-- FALSE CUT
+      heard: "I'm is it."
+
+--- rep 3: long_pause900_16k (398 MB available) ---
+Listening...
+  [STT 610ms] You said: "When you explain how a voice assistant pipes"
+Listening...
+  [STT 219ms] You said: "Works briefly."
+  fixed        ready    813ms  turns 2  <-- FALSE CUT
+      heard: "Works briefly."
+Listening...
+  [ENDPOINT 736ms] turn complete: "Can you explain how a voice assistant pipes?"
+  [STT 391ms] You said: "Can you explain how a voice assistant pipes?"
+Listening...
+  [ENDPOINT 512ms] turn complete: "Line works briefly."
+  [STT 187ms] You said: "Line works briefly."
+  punctuation  ready    437ms  turns 2  <-- FALSE CUT
+      heard: "Line works briefly."
+
+--- rep 3: medium_pause900_16k (711 MB available) ---
+Listening...
+  [STT 187ms] You said: "What is the cap?"
+Listening...
+  [STT 172ms] You said: "The title of France."
+  fixed        ready    797ms  turns 2  <-- FALSE CUT
+      heard: "The title of France."
+Listening...
+  [ENDPOINT 480ms] turn complete: "What is the cap?"
+  [STT 156ms] You said: "What is the cap?"
+Listening...
+  [ENDPOINT 512ms] turn complete: "The title of France."
+  [STT 188ms] You said: "The title of France."
+  punctuation  ready    438ms  turns 2  <-- FALSE CUT
+      heard: "The title of France."
+
+--- rep 3: short_pause900_16k (511 MB available) ---
+Listening...
+  [STT 125ms] You said: "What?"
+Listening...
+  [STT 391ms] You said: "I'm is it."
+  fixed        ready    891ms  turns 2  <-- FALSE CUT
+      heard: "I'm is it."
+Listening...
+  [ENDPOINT 448ms] turn complete: "What?"
+  [STT 93ms] You said: "What?"
+Listening...
+  [ENDPOINT 512ms] turn complete: "I'm is it."
+  [STT 187ms] You said: "I'm is it."
+  punctuation  ready    344ms  turns 2  <-- FALSE CUT
+      heard: "I'm is it."
+
+========================================================================
+mode             n  false cuts    median      p90      max
+----------------------------------------------------------
+fixed            9           9     813ms   1250ms   1250ms
+punctuation      9           7     657ms   1313ms   1313ms
+
+delta (punctuation - fixed): median -156ms  p90 +63ms  max +63ms  false cuts -2
+
+A median win with a worse max is a regression in conversation: the tail is
+what gets noticed. And a median win bought with even one extra false cut is
+not a win at all.
+
+response-ready = end of speech -> LLM call. Under 'punctuation' the STT pass
+is paid inside the silence wait rather than after it, so the saving is larger
+than the change in timeout alone.

@@ -16,6 +16,29 @@ from models.vad import VoiceActivityDetector
 
 _ASTERISK_ACTIONS = re.compile(r"\*[^*]*\*")
 
+# A finished sentence ends in terminal punctuation, possibly behind a closing
+# quote or bracket. Moonshine punctuates its output, so this is the whole
+# signal the punctuation gate runs on.
+_TURN_END = re.compile(r"[.!?][\"'’”)\]]*\s*$")
+# ...except a trailing ellipsis, which is exactly how an ASR renders someone
+# trailing off mid-thought — the one case where a terminal '.' means the
+# opposite of "done".
+_TRAILING_OFF = re.compile(r"(\.\.\.|…)[\"'’”)\]]*\s*$")
+
+
+def looks_like_end_of_turn(transcript: str) -> bool:
+    """Whether a partial transcript reads as a completed turn.
+
+    Deliberately dumb and free: no model, no memory, no network. It is wrong in
+    both directions — "New York" as an answer to "where do you live" has no
+    period, and an ASR will happily punctuate a sentence the speaker was going
+    to continue — which is why the caller keeps a hard ceiling on the wait.
+    """
+    text = transcript.strip()
+    if not text or _TRAILING_OFF.search(text):
+        return False
+    return bool(_TURN_END.search(text))
+
 
 class PipelineState(Enum):
     IDLE = auto()
@@ -63,6 +86,20 @@ class PipelineOrchestrator:
         self.silence_ms = 0
         self.conversation_history: list[dict] = []
 
+        # Punctuation-gate state (endpoint_mode == "punctuation"). The check
+        # itself runs in a worker thread so the mic keeps draining while STT
+        # is busy; _next_check_ms is the silence_ms at which to ask again.
+        self._endpoint_check: asyncio.Task | None = None
+        self._next_check_ms = config.vad.silence_floor_ms
+        # Most recent gate transcript, kept for the ceiling path. Valid only
+        # until the next voiced chunk, which is exactly when it gets cleared.
+        self._gate_transcript: tuple[str, float] | None = None
+        # Serializes every call into Moonshine. A gate check that gets
+        # cancelled when speech resumes leaves its thread running to
+        # completion (asyncio.to_thread can't interrupt it), so without this
+        # the next transcribe could enter the same ONNX session concurrently.
+        self._stt_lock = threading.Lock()
+
     async def push_chunk(self, raw_chunk: np.ndarray) -> None:
         """Called from the PyAudio read side. Drops oldest on overflow (TDD 7.2)."""
         if self.mic_queue.full():
@@ -95,16 +132,24 @@ class PipelineOrchestrator:
                 self.state = PipelineState.LISTENING
                 self.utterance_buffer = [chunk]
                 self.silence_ms = 0
+                self._reset_endpoint_gate()
                 print("Listening...")
 
         elif self.state == PipelineState.LISTENING:
             self.utterance_buffer.append(chunk)
             if is_speech:
+                # Rolling reset: one voiced chunk puts the whole endpointing
+                # decision back to zero, so breaths and filler never
+                # accumulate toward a cut. Both modes depend on this.
                 self.silence_ms = 0
+                self._reset_endpoint_gate()
             else:
                 self.silence_ms += self.config.audio.chunk_ms
-                if self.silence_ms >= self.config.vad.silence_timeout_ms:
-                    await self._finalize_utterance()
+                if self.config.vad.endpoint_mode == "fixed":
+                    if self.silence_ms >= self.config.vad.silence_timeout_ms:
+                        await self._finalize_utterance()
+                else:
+                    await self._advance_punctuation_gate()
 
         elif self.state == PipelineState.SPEAKING:
             if is_speech:
@@ -112,8 +157,108 @@ class PipelineOrchestrator:
                 self.state = PipelineState.LISTENING
                 self.utterance_buffer = [chunk]
                 self.silence_ms = 0
+                self._reset_endpoint_gate()
 
-    async def _finalize_utterance(self) -> None:
+    def _reset_endpoint_gate(self) -> None:
+        """Abandon any in-flight turn-complete check and re-arm the floor."""
+        if self._endpoint_check is not None and not self._endpoint_check.done():
+            self._endpoint_check.cancel()
+        self._endpoint_check = None
+        self._next_check_ms = self.config.vad.silence_floor_ms
+        self._gate_transcript = None
+
+    async def _advance_punctuation_gate(self) -> None:
+        """One chunk's worth of progress on the turn-complete decision.
+
+        Called on every silent chunk while LISTENING. Three things can happen:
+        the ceiling forces a cut, a finished check answers the question, or a
+        new check gets launched. Everything else is waiting.
+        """
+        vad = self.config.vad
+
+        if self.silence_ms >= vad.silence_ceiling_ms:
+            # The gate said "not done" (or failed) all the way to the cap.
+            # Cut anyway — a wrong cut costs a re-ask, a hang costs the call.
+            # Reuse the last gate transcript if there is one: it covers the
+            # same speech (only silence has been added since), and paying a
+            # fresh STT pass here would put the full ASR cost on top of the
+            # longest wait the endpointer can produce — the worst possible
+            # place for it.
+            cached = self._gate_transcript
+            print(f"  [ENDPOINT ceiling {self.silence_ms}ms] cutting anyway"
+                  f"{' (reusing gate transcript)' if cached else ''}")
+            self._reset_endpoint_gate()
+            if cached is not None:
+                await self._finalize_utterance(transcript=cached[0], stt_ms=cached[1])
+            else:
+                await self._finalize_utterance()
+            return
+
+        check = self._endpoint_check
+        if check is not None:
+            if not check.done():
+                return
+            self._endpoint_check = None
+            try:
+                complete, transcript, stt_ms = check.result()
+            except asyncio.CancelledError:
+                return
+            except Exception as exc:
+                # Fall through to the ceiling rather than dropping the turn.
+                print(f"  [ENDPOINT error] gate check failed: {exc!r}")
+                self._next_check_ms = self.silence_ms + vad.endpoint_recheck_ms
+                return
+
+            if complete:
+                # Only silence has been appended since the snapshot the gate
+                # transcribed (any voiced chunk would have cancelled it), so
+                # that transcript still describes the whole utterance and the
+                # main path can skip re-transcribing it.
+                print(f"  [ENDPOINT {self.silence_ms}ms] turn complete: "
+                      f'"{transcript}"')
+                await self._finalize_utterance(transcript=transcript, stt_ms=stt_ms)
+                return
+
+            print(f"  [ENDPOINT {self.silence_ms}ms] still going, waiting")
+            if transcript.strip():
+                self._gate_transcript = (transcript, stt_ms)
+            self._next_check_ms = self.silence_ms + vad.endpoint_recheck_ms
+            return
+
+        buffered_ms = len(self.utterance_buffer) * self.config.audio.chunk_ms
+        if (self.silence_ms >= self._next_check_ms
+                and buffered_ms >= vad.min_speech_ms):
+            audio = np.concatenate(self.utterance_buffer)
+            self._endpoint_check = asyncio.create_task(
+                asyncio.to_thread(self._turn_is_complete, audio)
+            )
+
+    def _turn_is_complete(self, audio: np.ndarray) -> tuple[bool, str, float]:
+        """Worker-thread half of the gate: is this buffer a finished turn?
+
+        Runs the same denoise+STT the main path would, so the transcript is
+        reusable verbatim when the answer is yes — which is what keeps the
+        gate free on the common case instead of costing a second ASR pass.
+        """
+        t0 = time.monotonic()
+        with self._stt_lock:
+            denoised = self.denoiser.process(audio)
+            transcript = self.stt.transcribe(denoised)
+        return (looks_like_end_of_turn(transcript), transcript,
+                1000 * (time.monotonic() - t0))
+
+    def _locked_transcribe(self, audio: np.ndarray) -> str:
+        with self._stt_lock:
+            return self.stt.transcribe(audio)
+
+    async def _finalize_utterance(self, transcript: str | None = None,
+                                  stt_ms: float = 0.0) -> None:
+        """Close the utterance and hand it off.
+
+        `transcript` is the punctuation gate's already-computed transcription
+        of this same audio; when present the STT pass is skipped rather than
+        repeated, and `stt_ms` is what that transcription actually cost.
+        """
         total_ms = len(self.utterance_buffer) * self.config.audio.chunk_ms
         buffer = self.utterance_buffer
         self.utterance_buffer = []
@@ -124,7 +269,9 @@ class PipelineOrchestrator:
 
         self.state = PipelineState.THINKING
         audio_data = np.concatenate(buffer)
-        self.current_task = asyncio.create_task(self._process_utterance(audio_data))
+        self.current_task = asyncio.create_task(
+            self._process_utterance(audio_data, transcript, stt_ms)
+        )
 
     def _handle_barge_in(self) -> None:
         print("Barge-in detected — stopping playback.")
@@ -137,15 +284,19 @@ class PipelineOrchestrator:
             except asyncio.QueueEmpty:
                 break
 
-    async def _process_utterance(self, audio: np.ndarray) -> None:
+    async def _process_utterance(self, audio: np.ndarray,
+                                 transcript: str | None = None,
+                                 stt_ms: float = 0.0) -> None:
         try:
             self.interrupt_speaker.clear()
             t0 = time.monotonic()
 
-            denoised = await asyncio.to_thread(self.denoiser.process, audio)
-            transcript = await asyncio.to_thread(self.stt.transcribe, denoised)
+            if transcript is None:
+                denoised = await asyncio.to_thread(self.denoiser.process, audio)
+                transcript = await asyncio.to_thread(self._locked_transcribe, denoised)
+                stt_ms = 1000 * (time.monotonic() - t0)
             t1 = time.monotonic()
-            print(f"  [STT {1000 * (t1 - t0):.0f}ms] You said: \"{transcript}\"")
+            print(f"  [STT {stt_ms:.0f}ms] You said: \"{transcript}\"")
 
             if not transcript.strip():
                 self.state = PipelineState.IDLE
