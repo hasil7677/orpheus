@@ -39,9 +39,9 @@ real-mic audio rather than to different words.
 ## Endpointing evaluation
 
 `eval_endpointing.py` is a separate harness for one question: when should the
-pipeline decide you have stopped talking? It runs both `endpoint_mode` settings
-(`fixed`, `punctuation` — see `config.py`) over the same clips and reports the
-two things that matter:
+pipeline decide you have stopped talking? It runs all three `endpoint_mode`
+settings (`fixed`, `punctuation`, `turn_detector` — see `config.py`) over the
+same clips and reports the two things that matter:
 
 - **false cuts** — turns finalized while the speaker still had audio left,
 - **response-ready** — ms from the true end of speech to the moment the LLM
@@ -52,12 +52,18 @@ two things that matter:
 .venv\Scripts\python.exe benchmarks\eval_endpointing.py benchmarks\clips_pauses 3
 ```
 
+`turn_detector` mode needs `assets/smart-turn-v3.2-cpu.onnx` on disk (~8MB,
+not committed — same pattern as Kokoro's weights). Download it from
+https://huggingface.co/pipecat-ai/smart-turn-v3/resolve/main/smart-turn-v3.2-cpu.onnx
+and `pip install transformers` (already in `requirements.txt`) for its
+mel-spectrogram feature extraction; see `models/turn_detector.py`.
+
 It stubs out the LLM and TTS — they are downstream of the decision being
 measured, they add network variance that would swamp it, and skipping them
-keeps the process near VAD+STT memory instead of the full ~5GB. The two modes
+keeps the process near VAD+STT memory instead of the full ~5GB. The modes
 alternate clip by clip rather than running in blocks, because this box's STT
 latency drifts by hundreds of ms over a few minutes and a blocked run would
-hand that drift to whichever mode went second.
+hand that drift to whichever mode went last.
 
 Ground truth comes from a `labels.json` next to the clips:
 
@@ -144,6 +150,48 @@ deliberate gaps in `pause1`/`pause2` as a stretch of nonspeech. If extending
 this clip set, prefer the VAD relabel approach over the RMS heuristic, or fix
 `last_voiced_end_ms` in `record_pause_utterances.py` to do the same.
 
+`results/2026-08-19-endpointing-eval-3way.log` — same real clips, all three
+`endpoint_mode`s in one run (n=24 each): `fixed` 15 false cuts / median
+806ms, `punctuation` 18 / 484ms, `turn_detector` 18 / 638ms.
+
+**`turn_detector` (smart-turn-v3.2-cpu) does not beat `punctuation`, and
+matches `fixed` and `punctuation` on which clips fail, not just the count.**
+Per-clip breakdown (identical across all 3 reps): on the three deliberately
+ambiguous clips (`pause1`, `pause2`, `restart1`) all three modes split the
+utterance the exact same way, every rep — smart-turn doesn't distinguish a
+genuine mid-thought pause from a finished thought any better than a punctuation
+regex or a flat timeout does, on this data. More striking: on `long_16k` — an
+*ordinary* question, not one of the designed-ambiguous clips — `punctuation`
+and `turn_detector` **independently** split it the identical way (2 turns) on
+every rep, while `fixed` gets it right. Two completely different mechanisms
+(ASR-transcript regex vs. a purpose-trained audio classifier) converge on the
+same false cut at the same natural breath — evidence that breath is genuinely
+ambiguous, not an artifact of either method. `turn_detector`'s latency win is
+also structurally smaller than `punctuation`'s (median -168ms vs -322ms
+against fixed) because it never gets `punctuation`'s free STT-during-the-wait
+trick — the audio classifier produces no transcript, so STT always pays after
+the cut, same timing shape as `fixed`.
+
+One data point in this log is a measurement artifact, not a `turn_detector`
+finding: `short_16k` shows 0 turns in `turn_detector` mode on all 3 reps — STT
+came back empty, so the LLM was never reached. Reproduced in isolation with
+1.8GB free and it works correctly (`STT 125ms` → `"What time is it?"`), so
+this is the box, not the code: three resident models (VAD+STT+turn_detector,
+on top of the denoiser) pushed available memory under the 700MB floor by the
+time the sequence reached this clip in each rep (528-659MB logged at that
+point) — hard evidence that adding a third resident model measurably worsens
+this 5.86GB box's headroom during a long combined run, beyond just adding
+~8MB of weights.
+
+**Conclusion: don't ship `turn_detector` either.** The bottleneck was never
+which gate mechanism decides — a naive punctuation check and a purpose-built
+Whisper-Tiny-based classifier fail on the *same* ambiguous real speech, at
+rates neither beats a dumb fixed timeout on. `models/turn_detector.py` and
+`endpoint_mode="turn_detector"` are built, tested (`tests/test_turn_detector.py`,
+`tests/test_endpointing.py`), and wired through the eval harness — the code
+is real and correct — the model itself just isn't better at this specific
+problem than what was already ruled out. Default stays `fixed`, same as A.
+
 `results/2026-08-15-gtx1650-run{1,2}.log` — 15 turns each, GTX 1650 4GB
 (driver 580.97), Ryzen 5 5600H, Windows 11, `openai/gpt-oss-20b` on Groq,
 otherwise-idle machine. `results/2026-08-15-gtx1650-summary.txt` is the
@@ -172,6 +220,13 @@ end-to-end 1359ms, mouth-to-ear ~2009ms.
   single clip's absolute ms as noisy. The false-cut counts and which clips
   get split into which number of turns are structural (same every rep,
   independent of memory) and are the trustworthy part of that result.
+- **The 2026-08-19 3-way run (adding `turn_detector`) fought memory pressure
+  harder than the 2-mode run**, unsurprisingly — a third resident model on
+  top of VAD+STT+denoiser. Available memory was logged as low as 528-659MB at
+  points and produced one outright STT failure (see the `short_16k` note
+  above). Treat medians as directionally right, individual clip timings and
+  the exact false-cut count as noisy; the *which clips split which way*
+  pattern (identical across all 3 reps) is the trustworthy part.
 - **Memory pressure dominates everything if you let it.** This pipeline
   commits ~5GB. On the 5.86GB box these were measured on, running with
   WSL/Docker/browsers resident produced STT maxima of 9328ms and intermittent

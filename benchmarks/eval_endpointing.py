@@ -25,7 +25,8 @@ anything with trailing room tone.
 What runs and what doesn't
 --------------------------
 The real orchestrator, real preprocessor, real Silero VAD, real state machine,
-real denoiser, real Moonshine, real punctuation gate. LLM and TTS are stubbed
+real denoiser, real Moonshine, real punctuation gate, real smart-turn-v3 turn
+detector. LLM and TTS are stubbed
 out: they are downstream of the decision being measured, they add network
 variance that would swamp it, and dropping them keeps this at roughly VAD+STT
 memory instead of the pipeline's full ~5GB — which matters a lot on a 5.86GB
@@ -58,7 +59,7 @@ from core.orchestrator import PipelineOrchestrator, PipelineState
 
 CLIPS_DIR = Path(sys.argv[1]) if len(sys.argv) > 1 else REPO / "benchmarks" / "clips_pauses"
 REPS = int(sys.argv[2]) if len(sys.argv) > 2 else 1
-MODES = ("fixed", "punctuation")
+MODES = ("fixed", "punctuation", "turn_detector")
 
 # filled by the stub LLM and the _finalize_utterance wrapper, per clip
 EVENTS: list[tuple[str, float, str]] = []
@@ -227,10 +228,14 @@ async def main():
     instrument(orch)
     loop_task = asyncio.create_task(orch.run_loop())
 
-    print(f"\nfixed:       silence_timeout_ms={config.vad.silence_timeout_ms}")
-    print(f"punctuation: floor={config.vad.silence_floor_ms} "
+    print(f"\nfixed:         silence_timeout_ms={config.vad.silence_timeout_ms}")
+    print(f"punctuation:   floor={config.vad.silence_floor_ms} "
           f"recheck={config.vad.endpoint_recheck_ms} "
           f"ceiling={config.vad.silence_ceiling_ms}")
+    print(f"turn_detector: floor={config.vad.silence_floor_ms} "
+          f"recheck={config.vad.endpoint_recheck_ms} "
+          f"ceiling={config.vad.silence_ceiling_ms} "
+          f"threshold={config.vad.turn_detector_threshold}")
 
     results: dict[str, list[dict]] = {mode: [] for mode in MODES}
     try:
@@ -274,18 +279,24 @@ async def main():
         print(f"{mode:<14}{len(rows):>4}{false_cuts:>12}"
               f"{statistics.median(ready):>8.0f}ms{p90:>7.0f}ms{max(ready):>7.0f}ms")
 
-    if len(summary) == 2:
-        base, new = summary["fixed"], summary["punctuation"]
-        print(f"\ndelta (punctuation - fixed): median {new[0] - base[0]:+.0f}ms  "
-              f"p90 {new[1] - base[1]:+.0f}ms  max {new[2] - base[2]:+.0f}ms  "
-              f"false cuts {new[3] - base[3]:+d}")
+    if "fixed" in summary:
+        base = summary["fixed"]
+        for mode in MODES:
+            if mode == "fixed" or mode not in summary:
+                continue
+            new = summary[mode]
+            print(f"\ndelta ({mode} - fixed): median {new[0] - base[0]:+.0f}ms  "
+                  f"p90 {new[1] - base[1]:+.0f}ms  max {new[2] - base[2]:+.0f}ms  "
+                  f"false cuts {new[3] - base[3]:+d}")
         print("\nA median win with a worse max is a regression in conversation: the "
               "tail is\nwhat gets noticed. And a median win bought with even one "
               "extra false cut is\nnot a win at all.")
 
     print("\nresponse-ready = end of speech -> LLM call. Under 'punctuation' the "
-          "STT pass\nis paid inside the silence wait rather than after it, so the "
-          "saving is larger\nthan the change in timeout alone.")
+          "STT pass is paid\ninside the silence wait rather than after it, so the "
+          "saving is larger than the\nchange in timeout alone. Under 'turn_detector' "
+          "STT is paid after the cut, same\nas 'fixed' — only the cutoff itself "
+          "changes.")
 
 
 if __name__ == "__main__":

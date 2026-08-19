@@ -1,8 +1,8 @@
 """Endpointing regression test — no GPU/mic/speaker hardware or API key required.
 
-Drives the real PipelineOrchestrator state machine with fake VAD/STT/LLM/TTS
-providers, so both endpoint modes can be exercised deterministically and in
-about a second.
+Drives the real PipelineOrchestrator state machine with fake VAD/STT/LLM/TTS/
+TurnDetector providers, so all three endpoint modes can be exercised
+deterministically and in about a second.
 
 What it pins down:
   * "fixed" mode still cuts at exactly silence_timeout_ms (the v1.0 behaviour
@@ -11,11 +11,16 @@ What it pins down:
     gate's transcript instead of paying a second STT pass,
   * a mid-sentence pause longer than the old 650ms constant does NOT get cut,
   * a transcript that never gains punctuation still gets cut at the ceiling,
-    so the turn can't hang.
+    so the turn can't hang,
+  * "turn_detector" mode cuts early when the detector says so, and — unlike
+    punctuation — always pays one fresh STT pass after the cut, since the
+    detector judges raw audio and never produces a transcript to reuse,
+  * a detector that never says "done" still gets cut at the ceiling.
 
-What it does NOT show: whether Moonshine's punctuation is any good on real
-speech at a real mic. That is what benchmarks/eval_endpointing.py measures,
-and it needs recorded, hand-labeled utterances to mean anything.
+What it does NOT show: whether Moonshine's punctuation, or smart-turn's
+audio judgment, is any good on real speech at a real mic. That is what
+benchmarks/eval_endpointing.py measures, and it needs recorded, hand-labeled
+utterances to mean anything.
 
 Run: .venv\\Scripts\\python.exe tests\\test_endpointing.py
 """
@@ -67,6 +72,25 @@ class FakeDenoiser:
         return audio
 
 
+class ScriptedTurnDetector:
+    """Returns whatever the test currently wants decided, and counts calls.
+
+    Constructed lazily by the orchestrator on first use (see
+    core/orchestrator.py), so a test can't grab the instance before that —
+    `default_complete` sets what the very first check decides.
+    """
+
+    default_complete = False
+
+    def __init__(self, config=None):
+        self.complete = ScriptedTurnDetector.default_complete
+        self.calls = 0
+
+    def is_turn_complete(self, audio: np.ndarray) -> bool:
+        self.calls += 1
+        return self.complete
+
+
 class RecordingLLM:
     """Captures the text the pipeline decided to answer."""
 
@@ -95,12 +119,7 @@ SILENT_CHUNK = np.zeros(512, dtype=np.int16)  # 32ms @ 16kHz
 
 
 def build(config) -> PipelineOrchestrator:
-    with patch("core.orchestrator.VoiceActivityDetector", FakeVAD), \
-         patch("core.orchestrator.SpeechToTextProvider", ScriptedSTT), \
-         patch("core.orchestrator.LLMProvider", RecordingLLM), \
-         patch("core.orchestrator.TextToSpeechProvider", FakeTTS), \
-         patch("core.orchestrator.UtteranceDenoiser", FakeDenoiser):
-        return PipelineOrchestrator(config)
+    return PipelineOrchestrator(config)
 
 
 async def feed(orch, ms: int, speech: bool) -> None:
@@ -124,23 +143,33 @@ async def feed_silence_until_cut(orch, max_ms: int) -> int | None:
 
 
 async def _run(config, body):
-    orch = build(config)
-    loop_task = asyncio.create_task(orch.run_loop())
-    try:
-        return await body(orch)
-    finally:
-        # Cancel the in-flight utterance too, not just the loop — otherwise it
-        # outlives this orchestrator and its LLM/TTS calls land in the middle
-        # of the next test.
-        for task in (loop_task, orch.current_task):
-            if task is not None:
-                task.cancel()
-        for task in (loop_task, orch.current_task):
-            if task is not None:
-                try:
-                    await task
-                except asyncio.CancelledError:
-                    pass
+    # Kept active for the whole run, not just construction: TurnDetector is
+    # instantiated lazily on first actual use (core/orchestrator.py), which
+    # can happen well after build() returns — a patch scoped to build() alone
+    # unpatches before that first use and the real ~8MB model loads instead.
+    with patch("core.orchestrator.VoiceActivityDetector", FakeVAD), \
+         patch("core.orchestrator.SpeechToTextProvider", ScriptedSTT), \
+         patch("core.orchestrator.LLMProvider", RecordingLLM), \
+         patch("core.orchestrator.TextToSpeechProvider", FakeTTS), \
+         patch("core.orchestrator.UtteranceDenoiser", FakeDenoiser), \
+         patch("core.orchestrator.TurnDetector", ScriptedTurnDetector):
+        orch = build(config)
+        loop_task = asyncio.create_task(orch.run_loop())
+        try:
+            return await body(orch)
+        finally:
+            # Cancel the in-flight utterance too, not just the loop —
+            # otherwise it outlives this orchestrator and its LLM/TTS calls
+            # land in the middle of the next test.
+            for task in (loop_task, orch.current_task):
+                if task is not None:
+                    task.cancel()
+            for task in (loop_task, orch.current_task):
+                if task is not None:
+                    try:
+                        await task
+                    except asyncio.CancelledError:
+                        pass
 
 
 async def test_fixed_mode_unchanged():
@@ -257,6 +286,76 @@ async def test_ceiling_always_cuts():
     print(f"OK: unpunctuated transcript still cut, at the {cut}ms ceiling.")
 
 
+async def test_turn_detector_cuts_early_and_pays_stt_after():
+    """turn_detector's key difference from punctuation: the decision comes
+    from audio, not a transcript, so there is nothing to reuse — STT runs
+    once, after the cut, same as fixed mode, just with a smarter cutoff."""
+    config = AppConfig()
+    config.vad.endpoint_mode = "turn_detector"
+    ScriptedTurnDetector.default_complete = True
+    RecordingLLM.seen = []
+
+    async def body(orch):
+        orch.stt.transcript = "What is the capital of France?"
+        await feed(orch, 320, speech=True)
+        cut = await feed_silence_until_cut(orch, 1500)
+        assert cut is not None, "turn_detector mode never finalized"
+        assert cut < config.vad.silence_timeout_ms, (
+            f"cut at {cut}ms — no better than the {config.vad.silence_timeout_ms}ms "
+            f"constant it is supposed to beat"
+        )
+        assert cut >= config.vad.silence_floor_ms, (
+            f"cut at {cut}ms, below the {config.vad.silence_floor_ms}ms floor"
+        )
+        await asyncio.sleep(0.15)  # let the utterance task reach STT + the LLM
+        assert orch.turn_detector.calls >= 1, "the gate never asked the detector"
+        assert orch.stt.calls == 1, (
+            f"STT ran {orch.stt.calls}x — should run exactly once, after the "
+            f"cut, since the detector produced no transcript to reuse"
+        )
+        assert RecordingLLM.seen == ["What is the capital of France?"], (
+            f"LLM saw {RecordingLLM.seen!r}"
+        )
+        return cut
+
+    cut = await _run(config, body)
+    print(f"OK: turn_detector mode cuts at {cut}ms on a decided-complete turn, "
+          f"STT paid once after.")
+
+
+async def test_turn_detector_ceiling_always_cuts():
+    """A detector that never says 'done' must not hang the turn — and unlike
+    punctuation mode there's no cached transcript to fall back on, so STT
+    must still run once the ceiling forces the cut."""
+    config = AppConfig()
+    config.vad.endpoint_mode = "turn_detector"
+    config.vad.silence_ceiling_ms = 1200  # keep the test quick
+    ScriptedTurnDetector.default_complete = False
+    RecordingLLM.seen = []
+
+    async def body(orch):
+        orch.stt.transcript = "never sounds done"
+        await feed(orch, 320, speech=True)
+        cut = await feed_silence_until_cut(orch, 2500)
+        assert cut is not None, "turn hung — ceiling did not fire"
+        assert cut >= config.vad.silence_ceiling_ms, (
+            f"cut at {cut}ms, before the {config.vad.silence_ceiling_ms}ms ceiling"
+        )
+        await asyncio.sleep(0.15)
+        assert orch.stt.calls == 1, (
+            f"STT ran {orch.stt.calls}x — turn_detector mode never has a gate "
+            f"transcript to reuse, so exactly one fresh pass is expected"
+        )
+        assert RecordingLLM.seen == ["never sounds done"], (
+            f"LLM saw {RecordingLLM.seen!r}"
+        )
+        return cut
+
+    cut = await _run(config, body)
+    print(f"OK: never-complete turn still cut, at the {cut}ms ceiling, "
+          f"STT paid once.")
+
+
 def test_end_of_turn_heuristic():
     complete = [
         "What is the capital of France?",
@@ -288,6 +387,8 @@ async def run_all():
     await test_punctuation_cuts_early_and_reuses_transcript()
     await test_mid_sentence_pause_is_not_cut()
     await test_ceiling_always_cuts()
+    await test_turn_detector_cuts_early_and_pays_stt_after()
+    await test_turn_detector_ceiling_always_cuts()
     print("\nEndpointing tests passed.")
 
 

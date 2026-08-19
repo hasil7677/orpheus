@@ -1,0 +1,574 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+========================================================================
+orpheus endpointing eval - real VAD/STT/state machine, stubbed LLM+TTS
+clips: benchmarks\clips_real  (8 files x 3 reps x 3 modes)
+labels: labels.json
+available physical memory at start: 1,649 MB
+========================================================================
+Loading models...
+All models loaded.
+
+fixed:         silence_timeout_ms=650
+punctuation:   floor=300 recheck=250 ceiling=2000
+turn_detector: floor=300 recheck=250 ceiling=2000 threshold=0.5
+
+--- rep 1: clean2_16k (915 MB available) ---
+Listening...
+  [STT 375ms] You said: "Thanks, that was really helpful. I appreciate it."
+  fixed        ready    987ms  turns 1
+      heard: "Thanks, that was really helpful. I appreciate it."
+Listening...
+  [ENDPOINT 704ms] turn complete: "Thanks, that was really helpful. I appreciate it."
+  [STT 359ms] You said: "Thanks, that was really helpful. I appreciate it."
+  punctuation  ready    642ms  turns 1
+      heard: "Thanks, that was really helpful. I appreciate it."
+Listening...
+  [ENDPOINT 576ms] turn complete: (STT pending)
+  [STT 328ms] You said: "Thanks, that was really helpful. I appreciate it."
+  turn_detector ready    861ms  turns 1
+      heard: "Thanks, that was really helpful. I appreciate it."
+
+--- rep 1: long_16k (803 MB available) ---
+Listening...
+  [STT 453ms] You said: "Can you explain how a voice assistant pipeline works briefly?"
+  fixed        ready   1084ms  turns 1
+      heard: "Can you explain how a voice assistant pipeline works briefly?"
+Listening...
+  [ENDPOINT 480ms] turn complete: "Do you?"
+  [STT 141ms] You said: "Do you?"
+Listening...
+  [ENDPOINT 736ms] turn complete: "Liam, how a voice assistant pipeline works briefly."
+  [STT 391ms] You said: "Liam, how a voice assistant pipeline works briefly."
+  punctuation  ready    678ms  turns 2  <-- FALSE CUT
+      heard: "Liam, how a voice assistant pipeline works briefly."
+Listening...
+  [ENDPOINT 480ms] turn complete: (STT pending)
+  [STT 157ms] You said: "And you?"
+Listening...
+  [ENDPOINT 544ms] turn complete: (STT pending)
+  [STT 297ms] You said: "Lay on how a voice assistant pipeline works briefly."
+  turn_detector ready    802ms  turns 2  <-- FALSE CUT
+      heard: "Lay on how a voice assistant pipeline works briefly."
+
+--- rep 1: medium_16k (709 MB available) ---
+Listening...
+  [STT 250ms] You said: "What is the capital of France?"
+  fixed        ready    849ms  turns 1
+      heard: "What is the capital of France?"
+Listening...
+  [ENDPOINT 608ms] turn complete: "What is the capital of France?"
+  [STT 266ms] You said: "What is the capital of France?"
+  punctuation  ready    537ms  turns 1
+      heard: "What is the capital of France?"
+Listening...
+  [ENDPOINT 512ms] turn complete: (STT pending)
+  [STT 265ms] You said: "What is the capital of France?"
+  turn_detector ready    709ms  turns 1
+      heard: "What is the capital of France?"
+
+--- rep 1: pause1_16k (625 MB available) ---
+Listening...
+  [STT 156ms] You said: "Swondering if you could."
+Listening...
+  [STT 203ms] You said: "Just stand how the whole voice pipeline actually works."
+  fixed        ready    498ms  turns 2  <-- FALSE CUT
+      heard: "Just stand how the whole voice pipeline actually works."
+Listening...
+  [ENDPOINT 512ms] turn complete: "Maybe he's wondering if you could."
+  [STT 156ms] You said: "Maybe he's wondering if you could."
+Listening...
+  [ENDPOINT 544ms] turn complete: "Understand how this whole voice pipeline actually works."
+  [STT 203ms] You said: "Understand how this whole voice pipeline actually works."
+  punctuation  ready    498ms  turns 2  <-- FALSE CUT
+      heard: "Understand how this whole voice pipeline actually works."
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 156ms] You said: "I was wondering if you could..."
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 250ms] You said: "We understand how this whole voice pipeline actually works."
+  turn_detector ready    638ms  turns 2  <-- FALSE CUT
+      heard: "We understand how this whole voice pipeline actually works."
+
+--- rep 1: pause2_16k (587 MB available) ---
+Listening...
+  [STT 125ms] You said: "So the thing is,"
+Listening...
+  [STT 375ms] You said: "I don't really get how it decides when I'm done talking."
+  fixed        ready    909ms  turns 2  <-- FALSE CUT
+      heard: "I don't really get how it decides when I'm done talking."
+Listening...
+  [ENDPOINT 448ms] turn complete: "So the thing is?"
+  [STT 125ms] You said: "So the thing is?"
+Listening...
+  [ENDPOINT 640ms] turn complete: "I don't really get how it decides when I'm done talking."
+  [STT 297ms] You said: "I don't really get how it decides when I'm done talking."
+  punctuation  ready    487ms  turns 2  <-- FALSE CUT
+      heard: "I don't really get how it decides when I'm done talking."
+Listening...
+  [ENDPOINT 416ms] turn complete: (STT pending)
+  [STT 140ms] You said: "So the thing is,"
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 297ms] You said: "I don't really get how it decides when I'm done talking."
+  turn_detector ready    644ms  turns 2  <-- FALSE CUT
+      heard: "I don't really get how it decides when I'm done talking."
+
+--- rep 1: restart1_16k (541 MB available) ---
+Listening...
+  [STT 156ms] You said: "What's the, um..."
+Listening...
+  [STT 62ms] You said: "Actually."
+Listening...
+  [STT 235ms] You said: "Then you just tell me what the capital of France is."
+  fixed        ready    904ms  turns 3  <-- FALSE CUT
+      heard: "Then you just tell me what the capital of France is."
+Listening...
+  [ENDPOINT 480ms] still going, waiting
+  [ENDPOINT 896ms] still going, waiting
+  [ENDPOINT 1312ms] turn complete: "What's the um?"
+  [STT 140ms] You said: "What's the um?"
+Listening...
+  [ENDPOINT 416ms] turn complete: "Actually."
+  [STT 78ms] You said: "Actually."
+Listening...
+  [ENDPOINT 544ms] turn complete: "Then you just tell me what the capital of France is."
+  [STT 218ms] You said: "Then you just tell me what the capital of France is."
+  punctuation  ready    497ms  turns 3  <-- FALSE CUT
+      heard: "Then you just tell me what the capital of France is."
+Listening...
+  [ENDPOINT 416ms] turn complete: (STT pending)
+  [STT 141ms] You said: "What's the, um,"
+Listening...
+  [ENDPOINT 416ms] turn complete: (STT pending)
+  [STT 78ms] You said: "Actually."
+Listening...
+  [ENDPOINT 480ms] turn complete: (STT pending)
+  [STT 203ms] You said: "Then you just tell me what the capital of France is."
+  turn_detector ready    685ms  turns 3  <-- FALSE CUT
+      heard: "Then you just tell me what the capital of France is."
+
+--- rep 1: short_16k (528 MB available) ---
+Listening...
+  [STT 110ms] You said: "What time is it?"
+  fixed        ready    742ms  turns 1
+      heard: "What time is it?"
+Listening...
+  [ENDPOINT 448ms] turn complete: "What time is it?"
+  [STT 109ms] You said: "What time is it?"
+  punctuation  ready    382ms  turns 1
+      heard: "What time is it?"
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 62ms] You said: ""
+  turn_detector ready   never  turns 0
+
+--- rep 1: trailing1_16k (498 MB available) ---
+Listening...
+  [STT 297ms] You said: "I was going to ask you something but actually they're reminding me."
+Listening...
+  [STT 47ms] You said: ""
+  fixed        ready   -645ms  turns 1  <-- FALSE CUT
+      heard: "I was going to ask you something but actually they're reminding me."
+Listening...
+  [ENDPOINT 672ms] turn complete: "I was going to ask you something but actually they're reminding me."
+  [STT 297ms] You said: "I was going to ask you something but actually they're reminding me."
+Listening...
+  [ENDPOINT 384ms] still going, waiting
+  [ENDPOINT 704ms] still going, waiting
+  [ENDPOINT 1024ms] still going, waiting
+  [ENDPOINT 1344ms] still going, waiting
+  [ENDPOINT 1664ms] still going, waiting
+  [ENDPOINT ceiling 2016ms] cutting anyway
+  [STT 62ms] You said: ""
+  punctuation  ready   -895ms  turns 1  <-- FALSE CUT
+      heard: "I was going to ask you something but actually they're reminding me."
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 297ms] You said: "I was going to ask you something but actually they're reminding me."
+Listening...
+  [ENDPOINT 416ms] turn complete: (STT pending)
+  [STT 63ms] You said: ""
+  turn_detector ready   -833ms  turns 1  <-- FALSE CUT
+      heard: "I was going to ask you something but actually they're reminding me."
+
+--- rep 2: clean2_16k (392 MB available) ---
+Listening...
+  [STT 219ms] You said: "Thanks, that was really helpful. I appreciate it."
+  fixed        ready    814ms  turns 1
+      heard: "Thanks, that was really helpful. I appreciate it."
+Listening...
+  [ENDPOINT 544ms] turn complete: "Thanks, that was really helpful. I appreciate it."
+  [STT 203ms] You said: "Thanks, that was really helpful. I appreciate it."
+  punctuation  ready    455ms  turns 1
+      heard: "Thanks, that was really helpful. I appreciate it."
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 203ms] You said: "Thanks, that was really helpful. I appreciate it."
+  turn_detector ready    580ms  turns 1
+      heard: "Thanks, that was really helpful. I appreciate it."
+
+--- rep 2: long_16k (363 MB available) ---
+Listening...
+  [STT 266ms] You said: "Can you explain how a voice assistant pipeline works briefly?"
+  fixed        ready    897ms  turns 1
+      heard: "Can you explain how a voice assistant pipeline works briefly?"
+Listening...
+  [ENDPOINT 416ms] turn complete: "Do you?"
+  [STT 78ms] You said: "Do you?"
+Listening...
+  [ENDPOINT 544ms] turn complete: "Liam, how a voice assistant pipeline works briefly."
+  [STT 219ms] You said: "Liam, how a voice assistant pipeline works briefly."
+  punctuation  ready    490ms  turns 2  <-- FALSE CUT
+      heard: "Liam, how a voice assistant pipeline works briefly."
+Listening...
+  [ENDPOINT 416ms] turn complete: (STT pending)
+  [STT 78ms] You said: "And you?"
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 219ms] You said: "Lay on how a voice assistant pipeline works briefly."
+  turn_detector ready    631ms  turns 2  <-- FALSE CUT
+      heard: "Lay on how a voice assistant pipeline works briefly."
+
+--- rep 2: medium_16k (325 MB available) ---
+Listening...
+  [STT 156ms] You said: "What is the capital of France?"
+  fixed        ready    787ms  turns 1
+      heard: "What is the capital of France?"
+Listening...
+  [ENDPOINT 512ms] turn complete: "What is the capital of France?"
+  [STT 156ms] You said: "What is the capital of France?"
+  punctuation  ready    443ms  turns 1
+      heard: "What is the capital of France?"
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 156ms] You said: "What is the capital of France?"
+  turn_detector ready    521ms  turns 1
+      heard: "What is the capital of France?"
+
+--- rep 2: pause1_16k (305 MB available) ---
+Listening...
+  [STT 172ms] You said: "Swondering if you could."
+Listening...
+  [STT 235ms] You said: "Just stand how the whole voice pipeline actually works."
+  fixed        ready    545ms  turns 2  <-- FALSE CUT
+      heard: "Just stand how the whole voice pipeline actually works."
+Listening...
+  [ENDPOINT 544ms] turn complete: "Maybe he's wondering if you could."
+  [STT 203ms] You said: "Maybe he's wondering if you could."
+Listening...
+  [ENDPOINT 608ms] turn complete: "Understand how this whole voice pipeline actually works."
+  [STT 250ms] You said: "Understand how this whole voice pipeline actually works."
+  punctuation  ready    576ms  turns 2  <-- FALSE CUT
+      heard: "Understand how this whole voice pipeline actually works."
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 156ms] You said: "I was wondering if you could..."
+Listening...
+  [ENDPOINT 480ms] turn complete: (STT pending)
+  [STT 250ms] You said: "We understand how this whole voice pipeline actually works."
+  turn_detector ready    670ms  turns 2  <-- FALSE CUT
+      heard: "We understand how this whole voice pipeline actually works."
+
+--- rep 2: pause2_16k (344 MB available) ---
+Listening...
+  [STT 125ms] You said: "So the thing is,"
+Listening...
+  [STT 297ms] You said: "I don't really get how it decides when I'm done talking."
+  fixed        ready    831ms  turns 2  <-- FALSE CUT
+      heard: "I don't really get how it decides when I'm done talking."
+Listening...
+  [ENDPOINT 480ms] turn complete: "So the thing is?"
+  [STT 125ms] You said: "So the thing is?"
+Listening...
+  [ENDPOINT 672ms] turn complete: "I don't really get how it decides when I'm done talking."
+  [STT 297ms] You said: "I don't really get how it decides when I'm done talking."
+  punctuation  ready    550ms  turns 2  <-- FALSE CUT
+      heard: "I don't really get how it decides when I'm done talking."
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 125ms] You said: "So the thing is,"
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 312ms] You said: "I don't really get how it decides when I'm done talking."
+  turn_detector ready    643ms  turns 2  <-- FALSE CUT
+      heard: "I don't really get how it decides when I'm done talking."
+
+--- rep 2: restart1_16k (329 MB available) ---
+Listening...
+  [STT 141ms] You said: "What's the, um..."
+Listening...
+  [STT 63ms] You said: "Actually."
+Listening...
+  [STT 204ms] You said: "Then you just tell me what the capital of France is."
+  fixed        ready    873ms  turns 3  <-- FALSE CUT
+      heard: "Then you just tell me what the capital of France is."
+Listening...
+  [ENDPOINT 480ms] still going, waiting
+  [ENDPOINT 864ms] still going, waiting
+  [ENDPOINT 1280ms] turn complete: "What's the um?"
+  [STT 125ms] You said: "What's the um?"
+Listening...
+  [ENDPOINT 416ms] turn complete: "Actually."
+  [STT 62ms] You said: "Actually."
+Listening...
+  [ENDPOINT 544ms] turn complete: "Then you just tell me what the capital of France is."
+  [STT 204ms] You said: "Then you just tell me what the capital of France is."
+  punctuation  ready    482ms  turns 3  <-- FALSE CUT
+      heard: "Then you just tell me what the capital of France is."
+Listening...
+  [ENDPOINT 416ms] turn complete: (STT pending)
+  [STT 156ms] You said: "What's the, um,"
+Listening...
+  [ENDPOINT 416ms] turn complete: (STT pending)
+  [STT 62ms] You said: "Actually."
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 219ms] You said: "Then you just tell me what the capital of France is."
+  turn_detector ready    669ms  turns 3  <-- FALSE CUT
+      heard: "Then you just tell me what the capital of France is."
+
+--- rep 2: short_16k (291 MB available) ---
+Listening...
+  [STT 110ms] You said: "What time is it?"
+  fixed        ready    757ms  turns 1
+      heard: "What time is it?"
+Listening...
+  [ENDPOINT 448ms] turn complete: "What time is it?"
+  [STT 110ms] You said: "What time is it?"
+  punctuation  ready    383ms  turns 1
+      heard: "What time is it?"
+Listening...
+  [ENDPOINT 416ms] turn complete: (STT pending)
+  [STT 78ms] You said: ""
+  turn_detector ready   never  turns 0
+
+--- rep 2: trailing1_16k (297 MB available) ---
+Listening...
+  [STT 312ms] You said: "I was going to ask you something but actually they're reminding me."
+Listening...
+  [STT 46ms] You said: ""
+  fixed        ready   -614ms  turns 1  <-- FALSE CUT
+      heard: "I was going to ask you something but actually they're reminding me."
+Listening...
+  [ENDPOINT 640ms] turn complete: "I was going to ask you something but actually they're reminding me."
+  [STT 297ms] You said: "I was going to ask you something but actually they're reminding me."
+Listening...
+  [ENDPOINT 384ms] still going, waiting
+  [ENDPOINT 704ms] still going, waiting
+  [ENDPOINT 1024ms] still going, waiting
+  [ENDPOINT 1344ms] still going, waiting
+  [ENDPOINT 1664ms] still going, waiting
+  [ENDPOINT 1984ms] still going, waiting
+  [ENDPOINT ceiling 2016ms] cutting anyway
+  [STT 78ms] You said: ""
+  punctuation  ready   -958ms  turns 1  <-- FALSE CUT
+      heard: "I was going to ask you something but actually they're reminding me."
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 313ms] You said: "I was going to ask you something but actually they're reminding me."
+Listening...
+  [ENDPOINT 416ms] turn complete: (STT pending)
+  [STT 63ms] You said: ""
+  turn_detector ready   -832ms  turns 1  <-- FALSE CUT
+      heard: "I was going to ask you something but actually they're reminding me."
+
+--- rep 3: clean2_16k (277 MB available) ---
+Listening...
+  [STT 219ms] You said: "Thanks, that was really helpful. I appreciate it."
+  fixed        ready    799ms  turns 1
+      heard: "Thanks, that was really helpful. I appreciate it."
+Listening...
+  [ENDPOINT 544ms] turn complete: "Thanks, that was really helpful. I appreciate it."
+  [STT 204ms] You said: "Thanks, that was really helpful. I appreciate it."
+  punctuation  ready    456ms  turns 1
+      heard: "Thanks, that was really helpful. I appreciate it."
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 219ms] You said: "Thanks, that was really helpful. I appreciate it."
+  turn_detector ready    596ms  turns 1
+      heard: "Thanks, that was really helpful. I appreciate it."
+
+--- rep 3: long_16k (234 MB available) ---
+Listening...
+  [STT 266ms] You said: "Can you explain how a voice assistant pipeline works briefly?"
+  fixed        ready    896ms  turns 1
+      heard: "Can you explain how a voice assistant pipeline works briefly?"
+Listening...
+  [ENDPOINT 448ms] turn complete: "Do you?"
+  [STT 78ms] You said: "Do you?"
+Listening...
+  [ENDPOINT 544ms] turn complete: "Liam, how a voice assistant pipeline works briefly."
+  [STT 204ms] You said: "Liam, how a voice assistant pipeline works briefly."
+  punctuation  ready    506ms  turns 2  <-- FALSE CUT
+      heard: "Liam, how a voice assistant pipeline works briefly."
+Listening...
+  [ENDPOINT 416ms] turn complete: (STT pending)
+  [STT 78ms] You said: "And you?"
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 218ms] You said: "Lay on how a voice assistant pipeline works briefly."
+  turn_detector ready    631ms  turns 2  <-- FALSE CUT
+      heard: "Lay on how a voice assistant pipeline works briefly."
+
+--- rep 3: medium_16k (334 MB available) ---
+Listening...
+  [STT 156ms] You said: "What is the capital of France?"
+  fixed        ready    787ms  turns 1
+      heard: "What is the capital of France?"
+Listening...
+  [ENDPOINT 512ms] turn complete: "What is the capital of France?"
+  [STT 156ms] You said: "What is the capital of France?"
+  punctuation  ready    444ms  turns 1
+      heard: "What is the capital of France?"
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 156ms] You said: "What is the capital of France?"
+  turn_detector ready    537ms  turns 1
+      heard: "What is the capital of France?"
+
+--- rep 3: pause1_16k (811 MB available) ---
+Listening...
+  [STT 156ms] You said: "Swondering if you could."
+Listening...
+  [STT 219ms] You said: "Just stand how the whole voice pipeline actually works."
+  fixed        ready    529ms  turns 2  <-- FALSE CUT
+      heard: "Just stand how the whole voice pipeline actually works."
+Listening...
+  [ENDPOINT 512ms] turn complete: "Maybe he's wondering if you could."
+  [STT 171ms] You said: "Maybe he's wondering if you could."
+Listening...
+  [ENDPOINT 544ms] turn complete: "Understand how this whole voice pipeline actually works."
+  [STT 204ms] You said: "Understand how this whole voice pipeline actually works."
+  punctuation  ready    467ms  turns 2  <-- FALSE CUT
+      heard: "Understand how this whole voice pipeline actually works."
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 156ms] You said: "I was wondering if you could..."
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 234ms] You said: "We understand how this whole voice pipeline actually works."
+  turn_detector ready    607ms  turns 2  <-- FALSE CUT
+      heard: "We understand how this whole voice pipeline actually works."
+
+--- rep 3: pause2_16k (703 MB available) ---
+Listening...
+  [STT 125ms] You said: "So the thing is,"
+Listening...
+  [STT 297ms] You said: "I don't really get how it decides when I'm done talking."
+  fixed        ready    831ms  turns 2  <-- FALSE CUT
+      heard: "I don't really get how it decides when I'm done talking."
+Listening...
+  [ENDPOINT 480ms] turn complete: "So the thing is?"
+  [STT 125ms] You said: "So the thing is?"
+Listening...
+  [ENDPOINT 640ms] turn complete: "I don't really get how it decides when I'm done talking."
+  [STT 297ms] You said: "I don't really get how it decides when I'm done talking."
+  punctuation  ready    503ms  turns 2  <-- FALSE CUT
+      heard: "I don't really get how it decides when I'm done talking."
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 125ms] You said: "So the thing is,"
+Listening...
+  [ENDPOINT 480ms] turn complete: (STT pending)
+  [STT 344ms] You said: "I don't really get how it decides when I'm done talking."
+  turn_detector ready    737ms  turns 2  <-- FALSE CUT
+      heard: "I don't really get how it decides when I'm done talking."
+
+--- rep 3: restart1_16k (786 MB available) ---
+Listening...
+  [STT 140ms] You said: "What's the, um..."
+Listening...
+  [STT 78ms] You said: "Actually."
+Listening...
+  [STT 234ms] You said: "Then you just tell me what the capital of France is."
+  fixed        ready    903ms  turns 3  <-- FALSE CUT
+      heard: "Then you just tell me what the capital of France is."
+Listening...
+  [ENDPOINT 480ms] still going, waiting
+  [ENDPOINT 896ms] still going, waiting
+  [ENDPOINT 1280ms] turn complete: "What's the um?"
+  [STT 125ms] You said: "What's the um?"
+Listening...
+  [ENDPOINT 416ms] turn complete: "Actually."
+  [STT 63ms] You said: "Actually."
+Listening...
+  [ENDPOINT 544ms] turn complete: "Then you just tell me what the capital of France is."
+  [STT 218ms] You said: "Then you just tell me what the capital of France is."
+  punctuation  ready    497ms  turns 3  <-- FALSE CUT
+      heard: "Then you just tell me what the capital of France is."
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 156ms] You said: "What's the, um..."
+Listening...
+  [ENDPOINT 416ms] turn complete: (STT pending)
+  [STT 78ms] You said: "Actually."
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 219ms] You said: "Then you just tell me what the capital of France is."
+  turn_detector ready    654ms  turns 3  <-- FALSE CUT
+      heard: "Then you just tell me what the capital of France is."
+
+--- rep 3: short_16k (659 MB available) ---
+Listening...
+  [STT 125ms] You said: "What time is it?"
+  fixed        ready    758ms  turns 1
+      heard: "What time is it?"
+Listening...
+  [ENDPOINT 448ms] turn complete: "What time is it?"
+  [STT 125ms] You said: "What time is it?"
+  punctuation  ready    398ms  turns 1
+      heard: "What time is it?"
+Listening...
+  [ENDPOINT 416ms] turn complete: (STT pending)
+  [STT 62ms] You said: ""
+  turn_detector ready   never  turns 0
+
+--- rep 3: trailing1_16k (713 MB available) ---
+Listening...
+  [STT 312ms] You said: "I was going to ask you something but actually they're reminding me."
+Listening...
+  [STT 31ms] You said: ""
+  fixed        ready   -614ms  turns 1  <-- FALSE CUT
+      heard: "I was going to ask you something but actually they're reminding me."
+Listening...
+  [ENDPOINT 704ms] turn complete: "I was going to ask you something but actually they're reminding me."
+  [STT 344ms] You said: "I was going to ask you something but actually they're reminding me."
+Listening...
+  [ENDPOINT 384ms] still going, waiting
+  [ENDPOINT 704ms] still going, waiting
+  [ENDPOINT 1024ms] still going, waiting
+  [ENDPOINT 1344ms] still going, waiting
+  [ENDPOINT 1696ms] still going, waiting
+  [ENDPOINT ceiling 2016ms] cutting anyway
+  [STT 78ms] You said: ""
+  punctuation  ready   -879ms  turns 1  <-- FALSE CUT
+      heard: "I was going to ask you something but actually they're reminding me."
+Listening...
+  [ENDPOINT 448ms] turn complete: (STT pending)
+  [STT 297ms] You said: "I was going to ask you something but actually they're reminding me."
+Listening...
+  [ENDPOINT 416ms] turn complete: (STT pending)
+  [STT 47ms] You said: ""
+  turn_detector ready   -848ms  turns 1  <-- FALSE CUT
+      heard: "I was going to ask you something but actually they're reminding me."
+
+========================================================================
+mode             n  false cuts    median      p90      max
+----------------------------------------------------------
+fixed           24          15     806ms    909ms   1084ms
+punctuation     24          18     484ms    576ms    678ms
+turn_detector   24          18     638ms    737ms    861ms
+
+delta (punctuation - fixed): median -322ms  p90 -333ms  max -406ms  false cuts +3
+
+delta (turn_detector - fixed): median -168ms  p90 -172ms  max -223ms  false cuts +3
+
+A median win with a worse max is a regression in conversation: the tail is
+what gets noticed. And a median win bought with even one extra false cut is
+not a win at all.
+
+response-ready = end of speech -> LLM call. Under 'punctuation' the STT pass is paid
+inside the silence wait rather than after it, so the saving is larger than the
+change in timeout alone. Under 'turn_detector' STT is paid after the cut, same
+as 'fixed' — only the cutoff itself changes.

@@ -12,6 +12,7 @@ from config import AppConfig
 from models.llm import LLMProvider
 from models.stt import SpeechToTextProvider
 from models.tts import TextToSpeechProvider
+from models.turn_detector import TurnDetector
 from models.vad import VoiceActivityDetector
 
 _ASTERISK_ACTIONS = re.compile(r"\*[^*]*\*")
@@ -80,18 +81,28 @@ class PipelineOrchestrator:
         self.tts = TextToSpeechProvider(config.models, config.audio.tts_sample_rate)
         self.denoiser = UtteranceDenoiser(config.audio.sample_rate, config.processing)
         self.tts_postprocessor = TTSPostProcessor(config.audio.tts_sample_rate, config.processing)
+        # Lazy: only loaded the first time turn_detector mode is actually
+        # used, not just because it's the configured default at construction
+        # time. Keeps the ~8MB + model load off every mode that isn't in use,
+        # and means switching endpoint_mode on a live config (e.g. the eval
+        # harness alternating modes clip by clip) still works correctly.
+        self.turn_detector: TurnDetector | None = None
         print("All models loaded.")
 
         self.utterance_buffer: list[np.ndarray] = []
         self.silence_ms = 0
         self.conversation_history: list[dict] = []
 
-        # Punctuation-gate state (endpoint_mode == "punctuation"). The check
-        # itself runs in a worker thread so the mic keeps draining while STT
-        # is busy; _next_check_ms is the silence_ms at which to ask again.
+        # Endpoint-gate state, shared by both non-fixed modes (endpoint_mode
+        # in {"punctuation", "turn_detector"}). The check itself runs in a
+        # worker thread so the mic keeps draining while it's busy;
+        # _next_check_ms is the silence_ms at which to ask again.
         self._endpoint_check: asyncio.Task | None = None
         self._next_check_ms = config.vad.silence_floor_ms
-        # Most recent gate transcript, kept for the ceiling path. Valid only
+        # Most recent gate transcript, kept for the ceiling path in
+        # punctuation mode. Always None in turn_detector mode — that check
+        # never produces a transcript, so the ceiling path there just
+        # finalizes and pays STT like the fixed baseline does. Valid only
         # until the next voiced chunk, which is exactly when it gets cleared.
         self._gate_transcript: tuple[str, float] | None = None
         # Serializes every call into Moonshine. A gate check that gets
@@ -149,7 +160,7 @@ class PipelineOrchestrator:
                     if self.silence_ms >= self.config.vad.silence_timeout_ms:
                         await self._finalize_utterance()
                 else:
-                    await self._advance_punctuation_gate()
+                    await self._advance_endpoint_gate()
 
         elif self.state == PipelineState.SPEAKING:
             if is_speech:
@@ -167,12 +178,15 @@ class PipelineOrchestrator:
         self._next_check_ms = self.config.vad.silence_floor_ms
         self._gate_transcript = None
 
-    async def _advance_punctuation_gate(self) -> None:
+    async def _advance_endpoint_gate(self) -> None:
         """One chunk's worth of progress on the turn-complete decision.
 
-        Called on every silent chunk while LISTENING. Three things can happen:
-        the ceiling forces a cut, a finished check answers the question, or a
-        new check gets launched. Everything else is waiting.
+        Shared by 'punctuation' and 'turn_detector' — same floor/recheck/
+        ceiling shape, only the worker function (and whether it produces a
+        reusable transcript) differs. Called on every silent chunk while
+        LISTENING. Three things can happen: the ceiling forces a cut, a
+        finished check answers the question, or a new check gets launched.
+        Everything else is waiting.
         """
         vad = self.config.vad
 
@@ -213,14 +227,15 @@ class PipelineOrchestrator:
                 # Only silence has been appended since the snapshot the gate
                 # transcribed (any voiced chunk would have cancelled it), so
                 # that transcript still describes the whole utterance and the
-                # main path can skip re-transcribing it.
-                print(f"  [ENDPOINT {self.silence_ms}ms] turn complete: "
-                      f'"{transcript}"')
+                # main path can skip re-transcribing it. turn_detector mode
+                # never has one — STT runs fresh in _finalize_utterance.
+                detail = f'"{transcript}"' if transcript else "(STT pending)"
+                print(f"  [ENDPOINT {self.silence_ms}ms] turn complete: {detail}")
                 await self._finalize_utterance(transcript=transcript, stt_ms=stt_ms)
                 return
 
             print(f"  [ENDPOINT {self.silence_ms}ms] still going, waiting")
-            if transcript.strip():
+            if transcript and transcript.strip():
                 self._gate_transcript = (transcript, stt_ms)
             self._next_check_ms = self.silence_ms + vad.endpoint_recheck_ms
             return
@@ -229,12 +244,15 @@ class PipelineOrchestrator:
         if (self.silence_ms >= self._next_check_ms
                 and buffered_ms >= vad.min_speech_ms):
             audio = np.concatenate(self.utterance_buffer)
+            worker = (self._turn_is_complete if self.config.vad.endpoint_mode == "punctuation"
+                      else self._turn_is_complete_via_detector)
             self._endpoint_check = asyncio.create_task(
-                asyncio.to_thread(self._turn_is_complete, audio)
+                asyncio.to_thread(worker, audio)
             )
 
     def _turn_is_complete(self, audio: np.ndarray) -> tuple[bool, str, float]:
-        """Worker-thread half of the gate: is this buffer a finished turn?
+        """Worker-thread half of the punctuation gate: is this buffer a
+        finished turn?
 
         Runs the same denoise+STT the main path would, so the transcript is
         reusable verbatim when the answer is yes — which is what keeps the
@@ -246,6 +264,21 @@ class PipelineOrchestrator:
             transcript = self.stt.transcribe(denoised)
         return (looks_like_end_of_turn(transcript), transcript,
                 1000 * (time.monotonic() - t0))
+
+    def _turn_is_complete_via_detector(self, audio: np.ndarray) -> tuple[bool, None, float]:
+        """Worker-thread half of the turn_detector gate: is this buffer a
+        finished turn, per smart-turn-v3?
+
+        Unlike the punctuation gate this never produces a transcript — the
+        model judges raw audio — so the caller always finalizes without a
+        cached transcript and STT runs once afterward, same as fixed mode.
+        """
+        t0 = time.monotonic()
+        if self.turn_detector is None:
+            self.turn_detector = TurnDetector(self.config.vad)
+        denoised = self.denoiser.process(audio)
+        complete = self.turn_detector.is_turn_complete(denoised)
+        return (complete, None, 1000 * (time.monotonic() - t0))
 
     def _locked_transcribe(self, audio: np.ndarray) -> str:
         with self._stt_lock:

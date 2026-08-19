@@ -8,6 +8,11 @@ silero-vad==5.1.2
 # STT — Moonshine via ONNX Runtime (GPU)
 useful-moonshine-onnx
 
+# Turn detection (approach B, semantic endpointing) — Whisper feature
+# extractor only, for smart-turn's mel-spectrogram preprocessing. Runs on
+# CPU; the ONNX model itself is downloaded separately (see README).
+transformers==5.15.0
+
 # TTS — Kokoro via ONNX Runtime (GPU)
 kokoro-onnx[gpu]==0.4.9
 

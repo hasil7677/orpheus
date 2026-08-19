@@ -19,7 +19,7 @@ class VADConfig(BaseModel):
     silence_timeout_ms: int = Field(default=650, description="Consecutive silence before cutting utterance")
     min_speech_ms: int = Field(default=250, description="Minimum duration to be considered valid speech")
 
-    endpoint_mode: Literal["fixed", "punctuation"] = Field(
+    endpoint_mode: Literal["fixed", "punctuation", "turn_detector"] = Field(
         default="fixed",
         description=(
             "How the end of a turn is decided. 'fixed' waits silence_timeout_ms "
@@ -30,8 +30,18 @@ class VADConfig(BaseModel):
             "otherwise it keeps listening up to silence_ceiling_ms. Costs no "
             "extra memory (Moonshine is already resident) and no extra STT pass "
             "on the common case, because the transcript that answered the "
-            "question is the one handed to the LLM."
+            "question is the one handed to the LLM. 'turn_detector' uses the "
+            "same floor/recheck/ceiling shape but asks a dedicated audio model "
+            "(smart-turn-v3, see models/turn_detector.py) instead of STT+regex — "
+            "no transcript comes out of the check, so STT still runs once after "
+            "the decision, same cost as 'fixed', just with a smarter cutoff."
         ),
+    )
+    turn_detector_threshold: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="turn_detector mode: probability above which a turn counts as complete",
     )
     silence_floor_ms: int = Field(
         default=300,
