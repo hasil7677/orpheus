@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>orpheus — local voice-to-voice AI pipeline</title>
+<meta name="description" content="A real-time, voice-to-voice AI pipeline that runs almost entirely on your own GPU. Silero VAD, Moonshine STT, Kokoro TTS, Groq-hosted LLM.">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="orpheus — local voice-to-voice AI pipeline">
+<meta property="og:description" content="Speak to it, it talks back — VAD, transcription, and speech synthesis all run locally on your own GPU.">
+<meta property="og:image" content="https://orpheus-voice.vercel.app/og-image.png">
+<meta property="og:url" content="https://orpheus-voice.vercel.app">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="orpheus — local voice-to-voice AI pipeline">
+<meta name="twitter:description" content="Speak to it, it talks back — VAD, transcription, and speech synthesis all run locally on your own GPU.">
+<meta name="twitter:image" content="https://orpheus-voice.vercel.app/og-image.png">
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎙️</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <span class="brand">orpheus</span>
+    <a class="nav-link" href="https://github.com/hasil7677/orpheus" target="_blank" rel="noopener">GitHub ↗</a>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <p class="eyebrow">real-time · voice-to-voice · runs on your GPU</p>
+    <h1>Talk to it. It talks back.<br>Almost none of it leaves your machine.</h1>
+    <p class="hero-sub">
+      orpheus is a voice-to-voice AI pipeline built for low enough latency to feel
+      like a real conversation — VAD, transcription, and speech synthesis all run
+      locally on your own GPU (tested on a 4GB GTX 1650), with just the LLM
+      outsourced to a free, fast cloud API.
+    </p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="https://github.com/hasil7677/orpheus" target="_blank" rel="noopener">View on GitHub</a>
+      <a class="btn btn-ghost" href="#demo">Watch the demo ↓</a>
+    </div>
+  </section>
+
+  <section id="demo" class="section">
+    <h2>See it work</h2>
+    <div class="video-wrap">
+      <video controls preload="metadata">
+        <source src="demo.mp4" type="video/mp4">
+        Your browser doesn't support embedded video —
+        <a href="demo.mp4">download it directly</a>.
+      </video>
+    </div>
+    <p class="caption">A real conversation, running on a 4GB GTX 1650 — including a mid-response interruption.</p>
+  </section>
+
+  <section class="section">
+    <h2>Why local</h2>
+    <p class="body-text">
+      Most voice assistants ship your audio to someone else's server for every stage
+      of the pipeline. orpheus flips that: voice activity detection, speech-to-text,
+      and text-to-speech all run on-device, so your voice never leaves your machine
+      except as text sent to the LLM. A 4GB card can't run a usable local LLM
+      alongside STT+TTS, so that one piece is outsourced to Groq's free API — the
+      hybrid that gets you privacy and low latency where it matters most (your ear
+      and your voice) while keeping response quality high.
+    </p>
+  </section>
+
+  <section class="section">
+    <h2>Stack</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Stage</th><th>Model</th><th>Where it runs</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Voice activity detection</td><td>Silero VAD</td><td><span class="pill pill-cpu">CPU</span></td></tr>
+          <tr><td>Speech-to-text</td><td>Moonshine (ONNX)</td><td><span class="pill pill-gpu">GPU</span></td></tr>
+          <tr><td>LLM</td><td>Groq-hosted <code>openai/gpt-oss-20b</code></td><td><span class="pill pill-cloud">Cloud</span></td></tr>
+          <tr><td>Text-to-speech</td><td>Kokoro (82M, ONNX)</td><td><span class="pill pill-gpu">GPU</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Engineering notes</h2>
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="stat-num">~85%</div>
+        <div class="stat-label">cut in TTS time-to-first-audio (1.9s → 290ms) by flushing on clause boundaries instead of waiting for a full sentence.</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">barge-in</div>
+        <div class="stat-label">interrupt it mid-response and it actually stops, cancels the in-flight turn, and starts listening again — fixed a race that used to drop your first words.</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">4GB</div>
+        <div class="stat-label">the whole local stack (VAD + STT + TTS) has been run and tested on a 4GB GTX 1650.</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">capped</div>
+        <div class="stat-label">conversation history sent to the LLM is turn-capped so long sessions don't balloon the request payload over time.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Get started</h2>
+    <pre class="code-block"><code>py -3.11 -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+copy .env.example .env
+&#35; paste a free Groq API key into .env, then:
+.venv\Scripts\python.exe cli.py</code></pre>
+    <p class="body-text">
+      Full setup — including Kokoro model downloads and mic/speaker selection —
+      is in the <a href="https://github.com/hasil7677/orpheus#readme" target="_blank" rel="noopener">README</a>.
+    </p>
+  </section>
+</main>
+
+<footer class="footer">
+  <span>MIT License</span>
+  <a href="https://github.com/hasil7677/orpheus" target="_blank" rel="noopener">github.com/hasil7677/orpheus</a>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 1200px;
+    height: 630px;
+    background: #0a0d10;
+    font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, "Liberation Mono", monospace;
+    overflow: hidden;
+  }
+  .card {
+    position: relative;
+    width: 1200px;
+    height: 630px;
+    background:
+      radial-gradient(circle at 88% 12%, rgba(94,234,212,0.14), transparent 42%),
+      radial-gradient(circle at 8% 92%, rgba(94,234,212,0.08), transparent 38%),
+      #0a0d10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 88px;
+  }
+  .grid-lines {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+  .eyebrow {
+    position: relative;
+    color: #5eead4;
+    font-size: 20px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 22px;
+    font-weight: 600;
+  }
+  .title {
+    position: relative;
+    color: #e6ebef;
+    font-size: 108px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 28px;
+  }
+  .title .dot { color: #5eead4; }
+  .sub {
+    position: relative;
+    color: #8b98a5;
+    font-size: 27px;
+    max-width: 920px;
+    line-height: 1.5;
+    margin-bottom: 46px;
+  }
+  .pipeline {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+  .stage {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #12161b;
+    border: 1px solid #1f262d;
+    border-radius: 8px;
+    padding: 12px 20px;
+    color: #cbd5e1;
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .stage .tag {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+  }
+  .cpu { color: #93c5fd; }
+  .gpu { color: #5eead4; }
+  .cloud { color: #fca5a5; }
+  .arrow {
+    color: #3a4249;
+    font-size: 22px;
+    padding: 0 14px;
+  }
+  .footer {
+    position: absolute;
+    bottom: 40px;
+    left: 88px;
+    right: 88px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #5b6672;
+    font-size: 20px;
+  }
+  .footer .repo { color: #5eead4; font-weight: 600; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="grid-lines"></div>
+    <div class="eyebrow">real-time &middot; voice-to-voice &middot; runs on your gpu</div>
+    <div class="title">orpheus<span class="dot">.</span></div>
+    <div class="sub">Speak to it, it talks back — VAD, transcription, and speech synthesis all run locally on your own GPU.</div>
+    <div class="pipeline">
+      <div class="stage"><span class="tag cpu">CPU</span>VAD</div>
+      <span class="arrow">&rarr;</span>
+      <div class="stage"><span class="tag gpu">GPU</span>STT</div>
+      <span class="arrow">&rarr;</span>
+      <div class="stage"><span class="tag cloud">CLOUD</span>LLM</div>
+      <span class="arrow">&rarr;</span>
+      <div class="stage"><span class="tag gpu">GPU</span>TTS</div>
+    </div>
+    <div class="footer">
+      <span>MIT License</span>
+      <span class="repo">github.com/hasil7677/orpheus</span>
+    </div>
+  </div>
+</body>
+</html>
