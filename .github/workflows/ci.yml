@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      # PyAudio has no manylinux wheel and builds from source on Linux —
+      # needs the portaudio headers/lib present first.
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y portaudio19-dev
+
+      - name: Install Python dependencies
+        run: python -m pip install --upgrade pip && pip install -r requirements-dev.txt
+
+      # Runs the real pytest suite only (tests/). The six standalone smoke
+      # scripts in scripts/smoke/ make live Groq API calls and run real
+      # CUDA STT/TTS inference — they are not pytest tests and are not run
+      # here; see README.md for how to run them locally with a GPU + API key.
+      #
+      # tests/test_turn_detector.py's model-dependent cases skip themselves
+      # (pytest.mark.skipif) when assets/smart-turn-v3.2-cpu.onnx isn't
+      # present, which is always true here since that file is a gitignored
+      # downloaded asset never checked out on a CI runner. No live API key
+      # or GPU is required for anything that actually runs in this job —
+      # onnxruntime/torch fall back to CPU execution providers when no CUDA
+      # device is present (an existing, already-relied-on codepath — see
+      # HANDOFF.md bug #3).
+      - name: Run tests
+        run: python -m pytest tests/ -v

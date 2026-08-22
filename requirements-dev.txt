@@ -1,0 +1,8 @@
+# Dev/test-only dependencies — not needed to run the app itself.
+# Install on top of requirements.txt:
+#   .venv\Scripts\python.exe -m pip install -r requirements.txt -r requirements-dev.txt
+
+-r requirements.txt
+
+pytest==9.1.1
+pytest-asyncio==1.4.0

@@ -14,7 +14,7 @@ assets/*.onnx
 assets/*.bin
 
 # Test-generated artifacts
-tests/_tts_smoke_output.wav
+scripts/smoke/_tts_smoke_output.wav
 
 # Design notes — kept locally, not published
 /artitecture.md

@@ -106,23 +106,27 @@ figures above are therefore CPU figures.
 4. **Smoke-test each component before running the full pipeline:**
 
    ```
-   .venv\Scripts\python.exe tests\test_vad.py
-   .venv\Scripts\python.exe tests\test_tts.py
-   .venv\Scripts\python.exe tests\test_stt.py
-   .venv\Scripts\python.exe tests\test_llm.py
+   .venv\Scripts\python.exe scripts\smoke\smoke_vad.py
+   .venv\Scripts\python.exe scripts\smoke\smoke_tts.py
+   .venv\Scripts\python.exe scripts\smoke\smoke_stt.py
+   .venv\Scripts\python.exe scripts\smoke\smoke_llm.py
    ```
 
-   `test_tts.py` prints the active ONNX Runtime providers — confirm
+   `smoke_tts.py` prints the active ONNX Runtime providers — confirm
    `CUDAExecutionProvider` shows up, otherwise it silently fell back to CPU
    and TTS will be much slower.
 
-   Two more tests need no GPU/mic/API key at all (models/Groq are faked) and
-   run in a couple seconds:
+   Two more smoke scripts need no GPU/mic/API key at all (models/Groq are
+   faked) and run in a couple seconds:
 
    ```
-   .venv\Scripts\python.exe tests\test_barge_in.py
-   .venv\Scripts\python.exe tests\test_history_trim.py
+   .venv\Scripts\python.exe scripts\smoke\smoke_barge_in.py
+   .venv\Scripts\python.exe scripts\smoke\smoke_history_trim.py
    ```
+
+   These six are standalone smoke scripts (live API/CUDA calls), not pytest
+   tests — the real pytest suite (`pytest tests/`) covers orchestrator-level
+   and unit-level regressions with everything mocked; see `tests/`.
 
 5. **Run it:**
 

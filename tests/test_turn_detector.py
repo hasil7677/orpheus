@@ -10,15 +10,30 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 import soundfile as sf
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import AppConfig
-from models.turn_detector import TurnDetector
+from models.turn_detector import TURN_DETECTOR_MODEL_PATH, TurnDetector
 
 REPO = Path(__file__).parent.parent
 CLIPS = REPO / "benchmarks" / "clips_real"
+
+# smart-turn-v3.2-cpu.onnx is a downloaded asset (assets/*.onnx is
+# gitignored — see README's "Kokoro model files" step and
+# models/turn_detector.py's _DOWNLOAD_HELP), not GPU/API-key gated but
+# absent on a fresh checkout or CI runner. Skip cleanly instead of failing
+# when it isn't present, rather than every test here raising FileNotFoundError.
+pytestmark = pytest.mark.skipif(
+    not TURN_DETECTOR_MODEL_PATH.exists(),
+    reason=(
+        "smart-turn-v3.2-cpu.onnx not present in assets/ (gitignored, "
+        "download separately per README) — skipping turn-detector tests "
+        "that need the real model."
+    ),
+)
 
 
 def test_probability_is_in_range():
